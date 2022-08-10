@@ -1,0 +1,798 @@
+---
+title: "What's Your Prior?"
+subtitle: "Part I: Introduction"
+author: "Julia Haaf"
+csl: apa6.csl
+output:
+  ioslides_presentation:
+    css: shiny-slides.css
+    logo: pics/UvAlogo.png
+    transition: faster
+    widescreen: yes
+  beamer_presentation: default
+header-includes:
+- \usepackage{bm}
+- \usepackage{pcl}
+- \usepackage{amsmath}
+- \usepackage{setspace}
+- \usepackage{bm}
+- \usepackage{setspace}
+- \usepackage[LGRgreek]{mathastext}
+bibliography: lab.bib
+---
+
+```{r setup, include=FALSE, echo = F}
+knitr::opts_chunk$set(echo = F)
+
+library("msm")
+library("papaja")
+library(diagram)
+load("mixed_data.rdata")
+
+```
+
+## Outline
+
+1. Posterior Updating (Or: Is my cat a picky eater?)
+2. Priors for estimation
+3. Priors for model comparison (Or: Is my cat fat?)
+4. Prior prediction and prior sensitivity
+
+# Posterior Updating
+
+## Overview of Modeling
+
+```{r, fig.width=8, fig.asp = .6}
+par(cex=1.6, mar = c(0,0,0,0))
+M  <- matrix(nrow = 4, ncol = 4, byrow = TRUE, data = 0)
+M[2, 1] <- "Specification"
+M[3, 2] <-  "Analysis"            
+M[4, 3] <- "Interpretation"
+
+col=c("lightskyblue1","thistle1","darkseagreen1","lightskyblue1")
+
+pos <- cbind (c(0.24, 0.26, 0.74, 0.76), c(0.8, 0.3, 0.3, 0.8))
+
+par(cex=1.4)
+pos <- cbind (c(0.22, 0.22, 0.78, 0.78), c(0.8, 0.2, 0.2, 0.8))
+
+pp <- plotmat(M, pos = pos, name = c("Theoretical\n Statements", "Statistical\n Models", "Statistical\n Inference", "Inference About\n Statements"),box.col=col,arr.pos = .5,
+              lwd = 1, box.lwd = 2, cex.txt = 1, 
+              box.size = 0.17, box.type = "rect", box.prop = 0.3
+              , arr.type = "triangle"
+              , arr.lwd = 1.5
+              , dtext = .3
+              , curve = 0)
+```
+
+```{r}
+Y=21
+N=30
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+## An Example
+
+>- This is Frank.
+>- Frank likes to eat but he might be a tad picky.
+>- We may model how often Frank eats his food in a month: $$Y \sim \mbox{Binomial}(\theta, 30)$$
+
+<center>
+<img src="pics/frank3.jpeg" width="450">
+</center>
+
+## An Example
+
+Is Frank a picky eater?
+
+$$Y \sim \mbox{Binomial}(\theta, 30),$$
+$$\theta = .5.$$
+
+<center>
+<img src="pics/frank3.jpeg" width="250">
+</center>
+
+## Models, an Example
+
+\[Y \sim \mbox{Binomial}(\theta,30), \qquad \theta = .5.\]
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5))
+x=0:30
+m=dbinom(x,30,.5)
+par(cex=1.5,mgp=c(2,.7,0))
+plot(x,m,typ='h',xlab="Meals eaten",ylab="Probability",ylim=c(0,.3), yaxt = "n")
+axis(2, seq(0, .3, .1))
+points(x,m,pch=19,cex=1.3,col='slateblue')
+```
+
+## Data
+
+Let's say he ate 21 out of 30 meals. $Y = 21.$
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5))
+x=0:30
+m=dbinom(x,30,.5)
+par(cex=1.5,mgp=c(2,.7,0))
+plot(x,m,typ='h',xlab="Meals eaten",ylab="Probability",ylim=c(0,.3), yaxt = "n")
+axis(2, seq(0, .3, .1))
+points(x,m,pch=19,cex=1.3,col='slateblue')
+points(x[x == 21], m[x == 21], pch = 19, cex = 1.3, col = "red")
+```
+
+## Priors
+
+In Bayesian statistical analysis we typically would use a prior *distribution* for parameters.
+\[ \begin{aligned}
+Y|\theta &\sim \mbox{Binomial}(\theta,N),\\
+\theta &\sim \mbox{Beta}(a,b).
+\end{aligned}
+\]
+
+If we assume Frank will most likely eat 5 out of 10 meals we may use $a = 5$ and $b = 5$.
+
+## Posterior Updating
+
+from $Pr(\theta)$... 
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n")
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+# lines(outer,post,col='darkgreen',lwd=2)
+text(.1,2,"Prior",adj=.5)
+# text(.9,4,"Posterior\n (Conditional)",adj=.5)
+text(.8, 4.5, expression(theta ~ "~" ~ "Beta(5,5)"))
+```
+
+## Posterior Updating
+
+from $Pr(\theta)$... to $Pr(\theta|Y)$.
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n")
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+text(.1,2,"Prior",adj=.5)
+text(.9,4,"Posterior",adj=.5)
+```
+
+## Bayes' Rule:
+
+\[
+Pr(\theta|Y) = Pr(\theta)\frac{Pr(Y|\theta)}{Pr(Y)}
+\]
+
+- $Pr(\theta|Y)$ is the *posterior distribution* of $\theta$.
+- $Pr(\theta)$ is the *prior distribution* of $\theta$.
+- $Pr(Y|\theta)$ is the likelihood of the data.
+- $Pr(Y)$ is the marginal likelihood.
+
+## In search for a prior for Frank's eating habits.
+
+What should it look like?
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n")
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+# lines(outer,post,col='darkgreen',lwd=2)
+text(.1,2,"Prior",adj=.5)
+# text(.9,4,"Posterior\n (Conditional)",adj=.5)
+```
+
+## Opinions
+
+- "Priors should represent your belief about the parameter."
+- "Priors should represent what experts in the field might expect."
+- "Priors should contain as little information as possible. Let the data speak."
+- "Priors should represent reasonable expectation about likely ranges of the parameter."
+
+<center>
+<img src="pics/questioncat.jpeg" width="250">
+</center>
+
+## Matching priors to goals of analysis
+
+>- There are priors that are most suitable for estimation.
+>- And there are priors most suitable for model comparison.
+>- And there are priors that are pretty good for both.
+>- Oh, and not everyone agrees on this classifications (or what "good means").
+
+<br>
+
+<center>
+<img src="pics/goalscat.jpeg" width="250">
+</center>
+
+# Priors for Estimation
+
+## (Pretend) You Don't Know a Lot
+
+- Flat priors.
+- Jeffreys priors.
+- Reference priors.
+- (Default priors.)
+
+## Flat Priors
+
+\[\theta \sim \mbox{Uniform}(0, 1).\]
+
+```{r, fig.width=5, fig.asp=.7, fig.align='center', echo = T}
+theta <- runif(100000)
+hist(theta, probability = T)
+```
+
+## Non-informative = flat?
+
+What are the odds of Frank eating the food, $OR = \frac{\theta}{1 - \theta}$?
+
+```{r trans, cache = T, fig.width=6, fig.asp=.7, fig.align='center'}
+oddify <- function(x) x/(1 - x)
+hist(oddify(theta), xlim = c(0, 50), breaks = 100000)
+```
+
+## Flat Priors Can Be Improper
+
+Suppose $\theta$ does not have constrained support (mean difference between two measures): \[\theta \sim \mbox{Uniform}(-\infty, \infty).\]
+
+```{r, fig.width=5, fig.asp=.7, fig.align='center', echo = T}
+theta <- runif(100000, min = -100000, max = 100000)
+hist(theta, probability = T, ylim = c(0, 1))
+```
+
+## Jefferys Priors and Reference Priors
+
+>- Goal: Allow the data to have the maximum effect on the posterior estimates.
+>- Process: Maximize divergence from hypothetical data.
+>- The same for one-dimensional parameters.
+
+```{r, fig.asp = .7, fig.width=5}
+par(mar = c(3,3,2.5,.5), mgp = c(2, .7, 0), cex = 1.2)
+x <- seq(0, 1, .001)
+y <- dbeta(x, .5, .5)
+plot(x, y, type = "l", lwd = 3, col = "slateblue"
+     , ylab = "Density", xlab = expression(theta))
+```
+
+## Why Priors for Estimation Really Don't Matter That Much
+
+Frank eats his food 7 out of 10 times.
+
+```{r}
+Y=7
+N=10
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+layout(matrix(1:4, ncol = 2, byrow = T))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+legend("topleft", bty = "n", legend = c("Prior", "Posterior"), fill = c('darkblue', 'darkgreen'))
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 1
+b <- 1
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 3
+b <- 7
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 0.5
+b <- 0.5
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+```
+
+## Why Priors for Estimation Really Don't Matter That Much
+
+Frank eats his food 21 out of 30 times.
+
+```{r}
+Y=21
+N=30
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+layout(matrix(1:4, ncol = 2, byrow = T))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+legend("topleft", bty = "n", legend = c("Prior", "Posterior"), fill = c('darkblue', 'darkgreen'))
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 1
+b <- 1
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 3
+b <- 7
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 0.5
+b <- 0.5
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+```
+
+## Why Priors for Estimation Really Don't Matter That Much
+
+Frank eats his food 650 out of 1000 times.
+
+```{r}
+Y=650
+N=1000
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+layout(matrix(1:4, ncol = 2, byrow = T))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+# axis(2, seq(0, 9, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+legend("topleft", bty = "n", legend = c("Prior", "Posterior"), fill = c('darkblue', 'darkgreen'))
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 1
+b <- 1
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 3
+b <- 7
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 0.5
+b <- 0.5
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+```
+
+# Priors for Model Comparison
+
+## Why Priors for Model Comparison Really Do Matter
+
+```{r}
+Y=21
+N=30
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r}
+par(cex=1.5,mgp=c(2,.7,0), mar = c(3,3,.5,.5))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n")
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+myTheta=c(.5,.7)
+abline(v=myTheta,lty=2)
+points(myTheta,dbeta(myTheta,a,b),pch=19,cex=1.5,col='darkblue')
+points(myTheta,dbeta(myTheta,Y+a,N-Y+b),pch=19,cex=1.5,col='darkgreen')
+text(.05,1,"Prior\n (Marginal)",adj=.5)
+text(.95,2,"Posterior\n (Conditional)",adj=.5)
+ev <- dbeta(myTheta,Y + a, N - Y + b)/dbeta(myTheta,a,b)
+text(.43, 1.5, paste(round(ev[1], 2)))
+text(.63, 2.7, paste(round(ev[2], 2)))
+
+```
+
+## Why Priors for Model Comparison Really Do Matter | Updating factor
+
+```{r fig.asp = .4, fig.width=10}
+layout(matrix(1:2, ncol = 2))
+par(cex=1.3,mgp=c(2,.7,0),mar=c(4,4,2,1))
+
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n")
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+myTheta=c(.3,.7)
+abline(v=myTheta,lty=2)
+points(myTheta,dbeta(myTheta,a,b),pch=19,cex=1.5,col='darkblue')
+points(myTheta,dbeta(myTheta,Y+a,N-Y+b),pch=19,cex=1.5,col='darkgreen')
+
+ev=dbeta(theta,Y+a,N-Y+b)/dbeta(theta,a,b)
+plot(theta,ev,typ='l',xlab=expression(theta),ylab="Evidence Ratio",lwd=2)
+abline(h=1,col='black')
+mtext(side=3,line=-2,adj=.1,"Evidence",cex=1.5)
+```
+
+```{r fig.height=6, eval = F}
+par(cex=1.5,mgp=c(2,.7,0),mar=c(4,4,2,1))
+
+plot(theta,ev,typ='l',xlab=expression(theta),ylab="Evidence Ratio",lwd=2)
+abline(h=1,col='black')
+abline(h=3,col='darkgreen',lwd=3)
+abline(h=1/3,col='red',lwd=3)
+mtext(side=3,line=-2,adj=.1,"Evidence",cex=1.5)
+xup <- range(which(ev > 3))
+polygon(x = c(theta[xup], rev(theta[xup]))
+        , y = c(-.50, -.50, 8.5, 8.5)
+        , border = NA
+        , col = adjustcolor("darkgreen", .2))
+xlo <- range(which(ev[1:500] < 1/3))
+polygon(x = c(theta[xlo], rev(theta[xlo]))
+        , y = c(-.50, -.50, 8.5, 8.5)
+        , border = NA
+        , col = adjustcolor("red", .2))
+xlo <- range(which(ev[550:1001] < 1/3)) + 500
+polygon(x = c(theta[xlo], rev(theta[xlo]))
+        , y = c(-.50, -.50, 8.5, 8.5)
+        , border = NA
+        , col = adjustcolor("red", .2))
+
+```
+
+<!-- ## You Gotta Know Something -->
+
+<!-- >- You know a lot more than you think that can be incorporated in the prior. -->
+<!-- >- Use prior knowledge on range and typical data to pick the priors. -->
+
+<!-- <br> -->
+
+<!-- <br> -->
+
+<!-- <center> -->
+<!-- <img src="pics/expertcat.jpeg" width="350"> -->
+<!-- </center> -->
+
+## Example: A Cat and a Diet
+
+Frank might be picky, but once we figured out what he likes he is getting pretty fat. So we put him on a diet for 30 days.
+
+<center>
+<img src="pics/frank.jpeg" width="250">
+</center>
+
+```{r}
+set.seed(123)
+Day <- paste("day", 1:30)
+Change <- c(NA, rtnorm(29, -0.8/29, 0.1, lower = -.5, upper = 0.5))
+Weight <- 7.2
+for(i in 2:30) Weight[i] <- Weight[i - 1] + Change[i]
+
+knitr::kable(cbind(Day, round(Weight, 2), round(Change, 2)))
+```
+
+## Overview of Modeling
+
+```{r, fig.width=8, fig.asp = .6}
+par(cex=1.6, mar = c(0,0,0,0))
+M  <- matrix(nrow = 4, ncol = 4, byrow = TRUE, data = 0)
+M[2, 1] <- "Specification"
+M[3, 2] <-  "Analysis"            
+M[4, 3] <- "Interpretation"
+
+col=c("lightskyblue1","thistle1","darkseagreen1","lightskyblue1")
+
+pos <- cbind (c(0.24, 0.26, 0.74, 0.76), c(0.8, 0.3, 0.3, 0.8))
+
+par(cex=1.4)
+pos <- cbind (c(0.22, 0.22, 0.78, 0.78), c(0.8, 0.2, 0.2, 0.8))
+
+pp <- plotmat(M, pos = pos, name = c("Theoretical\n Statements", "Statistical\n Models", "Statistical\n Inference", "Inference About\n Statements"),box.col=col,arr.pos = .5,
+              lwd = 1, box.lwd = 2, cex.txt = 1, 
+              box.size = 0.17, box.type = "rect", box.prop = 0.3
+              , arr.type = "triangle"
+              , arr.lwd = 1.5
+              , dtext = .3
+              , curve = 0)
+```
+
+## Models for Comparison
+
+>- $\calM_1$: Frank loses weight because of the diet.
+>- $\calM_0$: Frank does not lose weight because of the diet.
+>- Change in weight might be normally distributed: $Y_i \sim \mbox{Normal}(\mu, \sigma^2)$
+>- For model $\calM_1$ we might want a truncated normal prior on mu: $\mu \sim \mbox{Normal}_{-}(a, b^2)$ 
+>- For model $\calM_0$ $\mu = 0$.
+>- Prior on $\sigma^2$?
+>- Prior settings on $a$ and $b$?
+
+## Models for Comparison
+
+- $\calM_1$: Frank loses weight because of the diet.
+- $\calM_0$: Frank does not lose weight because of the diet.
+- Change in weight might be normally distributed: $Y_i \sim \mbox{Normal}(\mu, \sigma^2)$
+- For model $\calM_1$ we might want a truncated normal prior on mu: $\mu \sim \mbox{Normal}_{-}(a, b^2)$ 
+- For model $\calM_0$ $\mu = 0$.
+- Prior on $\sigma^2$?
+- Prior settings on $a$ and $b$?
+
+```{r echo = T}
+1/30
+```
+
+## Models for Comparison
+
+- $\calM_1$: Frank loses weight because of the diet.
+- $\calM_0$: Frank does not lose weight because of the diet.
+- Change in weight might be normally distributed: $Y_i \sim \mbox{Normal}(\mu, \sigma^2)$
+- For model $\calM_1$ we might want a truncated normal prior on mu: $\mu \sim \mbox{Normal}_{-}(a, b^2)$ 
+- For model $\calM_0$ $\mu = 0$.
+- Prior on $\sigma^2$?
+- Prior settings on $a$ and $b$?
+
+```{r}
+par(mgp = c(2, .7, 0), cex = 1.2)
+x2 <- seq(-.3, .1, .001)
+y2 <- dtnorm(x2, 0, .05, upper = 0)
+plot(x2, y2, type = "l", lwd = 2, col = "slateblue"
+     , ylab = "Density", xlab = expression(mu))
+text(-.2, 13, expression(Normal(0, 0.05^2)), cex = 1.3)
+```
+
+
+
+
+## The Blessing of Default Priors
+
+>- `BayesFactor` package in `R` and `JASP` use default priors for the t-test called JZS prior.
+>- Prior structure is constant.
+>- Prior setting is on the scale of the effect size (think Cohen's $d$).
+
+## The Blessing of Default Priors
+
+- `BayesFactor` package in `R` and `JASP` use default priors for the t-test called JZS prior.
+- Prior structure is constant.
+- Prior setting is on the scale of the effect size (think Cohen's $d$).
+
+```{r, echo = T, eval = F}
+BayesFactor::ttestBF(x = Change[-1]
+                     , mu = 0
+                     , nullInterval = c(-Inf, 0)
+                     , rscale = 1/sqrt(2))
+```
+
+## The Blessing of Default Priors
+
+```{r, echo = T, eval = F}
+BayesFactor::ttestBF(x = Change[-1]
+                     , mu = 0
+                     , nullInterval = c(-Inf, 0)
+                     , rscale = 1/sqrt(2))
+```
+
+```{r, fig.asp = .7, fig.width=5.5}
+par(mar = c(3,3,.5,.5), mgp = c(2,.7,0))
+x <- seq(-3, 3, .01)
+y <- dcauchy(x, 0, 1/sqrt(2))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density", xlab = "Effect Size"
+     , col = "darkblue", ylim = c(0, .5))
+lines(x, dnorm(x), col = adjustcolor(1, .5), lty = 2, lwd = 2)
+```
+
+## The Blessing of Default Priors
+
+```{r, echo = T, eval = F}
+BayesFactor::ttestBF(x = Change[-1]
+                     , mu = 0
+                     , nullInterval = c(-Inf, 0)
+                     , rscale = 1/3)
+```
+
+```{r, fig.asp = .7, fig.width=5.5}
+par(mar = c(3,3,.5,.5), mgp = c(2,.7,0))
+x <- seq(-3, 3, .01)
+y <- dcauchy(x, 0, 1/sqrt(2))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density", xlab = "Effect Size"
+     , col = "darkblue", ylim = c(0, 1))
+lines(x, dnorm(x), col = adjustcolor(1, .5), lty = 2, lwd = 2)
+lines(x, dcauchy(x, 0, 1/3), col = "firebrick", lwd = 2)
+```
+
+## The Blessing of Default Priors
+
+```{r, echo = T}
+BayesFactor::ttestBF(x = Change[-1]
+                     , mu = 0
+                     , nullInterval = c(-Inf, 0)
+                     , rscale = 1/3)
+```
+
+# Prior Prediction and Prior Sensitivity | Ensuring you understand your priors and their influence on the analysis?
+
+## Prior Sensitivity
+
+>- How does your prior influence the results of the analysis?
+>- Redo the analysis for a range of priors
+>- If the results are (relatively) stable then we may trust them more.
+
+## Prior Sensitivity
+
+- How does your prior influence the results of the analysis?
+- Redo the analysis for a **reasonable** range of priors.
+- If the results are (relatively) stable then we may trust them more.
+
+```{r}
+par(mgp = c(2, .7, .0), mar = c(3,3,.5, .5), cex = 1.2)
+p.set <- seq(1/7, .6, .01)
+bf <- c()
+for(i in 1:length(p.set)){
+  tmp <- BayesFactor::ttestBF(x = Change[-1]
+                     , mu = 0
+                     , nullInterval = c(-Inf, 0)
+                     , rscale = p.set[i])
+  bf[i] <- exp(tmp@bayesFactor[1,1])
+}
+plot(p.set, bf, type = "l", lwd = 2, col = "firebrick", ylab = "Bayes factor", xlab = "Scale setting", ylim = c(1, 3.3))
+lines(c(1/3, 1/3), c(1, bf[20]), lwd = 3, col = "slateblue")
+```
+
+
+
+## Prior Sensitivity | For two parameters
+
+```{r}
+a <- c(0.3, .5, .7)
+b <- c(1.1, 1.5, 1.9)
+
+res <- expand.grid(a, b)
+colnames(res) <- letters[1:2]
+knitr::kable(res)
+```
+
+## Prior Prediction
+
+>- What data are predicted by your prior?
+>- Are these predictions plausible?
+
+\[Y \sim \mbox{Binomial}(\theta,30), \qquad \theta = .5.\]
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5))
+x=0:30
+m=dbinom(x,30,.5)
+par(cex=1.5,mgp=c(2,.7,0))
+plot(x,m,typ='h',xlab="Meals eaten",ylab="Probability",ylim=c(0,.3), yaxt = "n")
+axis(2, seq(0, .3, .1))
+points(x,m,pch=19,cex=1.3,col='slateblue')
+```
+
+## Prior Prediction
+
+>- Example: Memory performance in a two-alternative forces choice recognition task (K = 100).
+>- Proposed prior for the probability of a correct response: $\theta \sim \mbox{Beta}(2,2)$.
+>- Procedure: Sample from the prior, simulate data based on the sample.
+
+## Prior Prediction
+
+- Example: Memory performance in a two-alternative forces choice recognition task (K = 100).
+- Proposed Prior: $\theta \sim \mbox{Beta}(2,2)$
+- Procedure: Sample from the prior, simulate data based on the sample.
+
+```{r echo = T}
+M <- 1000 # simulation runs
+p.theta <- rbeta(M, 2, 2) # theta sampled from the prior
+y <- rbinom(1000, 100, p.theta)
+hist(y)
+```
+
+## Prior Prediction | When it goes really wrong
+
+>- Using very wide normal priors (e.g., $\mbox{Normal}(0, 100)$ for likert-scale data).
+>- When priors are placed on transformed parameters (e.g., logistic regression models).
+
+<center>
+<img src="pics/predcat.jpeg" width="350">
+</center>
+
+## Thank you!
+
+<center>
+<img src="pics/frank4.jpeg" width="350">
+</center>
+
+
+<style>
+slides > slide {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+</style>
+
+<style>
+slides > slide:not(.nobackground):before {
+  background: none;
+}
+</style>
+
+<font size="3">
+<div id = "refs"></div>
+</font>
+
+

@@ -1,0 +1,1066 @@
+---
+title     : "<small>Mathematical Modelling</small>"
+subtitle  : "Signal Detection Model"
+author    : "<br />`r paste(params$author, collapse = ' & ')`"
+date      : "<small>`r params$date`</small>"
+
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    self_contained: true
+    chakra: libs/remark-latest.min.js
+    css: ["src/xaringan-themer.css", "src/slides.css"]
+    nature:
+      countIncrementalSlides: false
+      highlightLines: true
+      slideNumberFormat: |
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: calc(%current% / %total% * 100%);">
+          </div>
+        </div>
+---
+exclude: true
+
+```{r setup, include=FALSE}
+library("knitr")
+options(htmltools.dir.version = FALSE)
+opts_chunk$set(echo = FALSE, fig.align = "center")
+
+# remotes::install_github("gadenbuie/xaringanExtra")
+library("xaringanExtra")
+library("xaringanthemer")
+
+my_colors <- c("#bc0031", "#d67f42")
+
+library("dplyr")
+library("ggplot2")
+library("viridis")
+library("papaja")
+```
+
+```{r extras-styling, include = FALSE}
+use_xaringan_extra(c("tile_view", "clipboard")) #, "broadcast", "webcam", "animate_css"
+
+# style_mono_light("#32475b")
+style_mono_accent(
+  base_color = my_colors[1]
+  # , title_slide_background_image = "src/uva.svg"
+  , header_font_google = google_font("Poppins")
+  , header_h1_font_size = "36pt"
+  , text_font_google = google_font("Open Sans")
+  , text_font_size = "22pt"
+  , text_color = "#3a3a3a"
+  , outfile = "src/xaringan-themer.css"
+)
+```
+
+```{r}
+add_overlay <- function(..., label = NULL, label_style = NULL) {
+  el <- list(...)
+  
+  y <- '<div id="overlay-highlight"'
+  if(length(el) > 0) {
+    y <- c(y, 'style="', glue::glue('{names(el)}:{el};'))
+  }
+  y <- c(y, '">')
+  
+  if(!is.null(label)) {
+    y <- c(y, glue::glue('<span" class="vertical-center"" style="{label_style}">{label}</span>'))
+  }
+  
+  knitr::asis_output(glue::glue_collapse(c(y, "</div>")))
+}
+```
+
+---
+# Feedback
+
+*Let us know what went well and what could be improved!*
+
+.center[
+
+<div id="overlay-highlight", style = "padding: 1em;display:inline;top:auto;right:auto;bottom:auto;">
+
+
+<a href="https://forms.gle/hDfWRiBN5gRKLkVT7">Go to feedback survey</a>
+
+</div>
+
+]
+
+<script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.js"></script>
+<script type="module">
+import mediumZoom from 'https://cdn.jsdelivr.net/npm/medium-zoom@1.0.6/dist/medium-zoom.esm.js'
+
+const zoomDefault = mediumZoom('#zoom-default')
+const zoomMargin = mediumZoom('#zoom-margin', { margin: 45 })
+</script>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  "HTML-CSS": {
+    scale: 150
+  }
+});
+</script>
+
+---
+# Agenda
+
+### Signal detection models
+
+1. Signal detection experiments
+2. A bit more probability theory
+3. Signal detection models
+  - Receiving Operator Characteristics (ROC)
+  - SDT in `R`
+  - SDT in practice
+
+---
+class: my-one-page-font
+
+### Signal detection experiment
+
+```{r, out.width = "60%", out.extra = 'id="zoom-margin"'}
+include_graphics("src/sdexp.png")
+```
+
+--
+
+| Stimulus | Present response | Absent Response | Total | 
+|:------|:-----:|:---------:|:------:| 
+|   Signal  |  75  |    25   |    100  | 
+|  Noise  |  30 |   20   |   50  | 
+|  Total  |  105 |   45   |     | 
+
+---
+
+class: my-one-page-font
+
+### Signal detection experiment
+
+```{r, out.width = "60%", out.extra = 'id="zoom-margin"'}
+include_graphics("src/sdexp.png")
+```
+
+| Stimulus | Present response | Absent Response | Total | 
+|:------|:-----:|:---------:|:------:| 
+|   Signal  |  75 (Hits)  |    25 (Misses)   |    100  | 
+|  Noise  |  30 (False Alarms) |   20 (Correct Rejections)   |   50  | 
+|  Total  |  105 |   45   |     | 
+
+---
+
+### Signal Detection Theory vs. Signal detection experiment
+
+- Signal Detection Theory (SDT): Model-based method of assessing performance
+--
+
+- Originally developed for signal detection experiments
+- Now used for perception, memory, decision theory, attitude research, ...
+
+.footnote[Green & Swets, 1966]
+--
+
+- Originally for two-choice tasks
+- Now extended to any form of forced-choice task including rating scales, continuous measures, ...
+
+---
+
+### Signal Detection Theory
+
+Models are a bit more complicated and rely on understanding of continuous random variables.
+
+```{r, echo = F, fig.asp = .7, fig.width=8}
+par(cex = 1.5, mgp = c(2, .7, 0))
+x <- seq(-3, 3, .01)
+y <- dnorm(x)
+plot(x, y, yaxt = 'n', type = "l", lwd = 3, ylab = "", col = adjustcolor(1, .8))
+```
+
+---
+
+# A bit more probability theory
+
+### Density function
+
+<div style="background-color: #f6effc ; padding: 10px; border: 3px solid #461a6c;"> Definition <i>Density function:</i> The density function (pdf) of a continuous random variable <i>X</i>, <i>f(x)</i>, is a function such that the area under the function between <i>a</i> and <i>b</i> corresponds to the probability 
+$$
+Pr(a < x \leq b).
+$$
+The value of <i>f(x)</i> is the probability density.
+</div>
+
+---
+
+### Density function
+
+#### Example
+
+```{r, echo = F, fig.asp = .6, fig.width=8}
+par(cex = 1.5, mgp = c(2, .7, 0), mar = c(3,3,1,1))
+plot(x, y, type = "l", lwd = 3
+     , ylab = "Density f(x)", xlab = "X", ylim = c(0, .5))
+text(2, .48, "pdf of a normal", cex = 1.3)
+```
+
+---
+
+### Density function
+
+#### Example
+
+```{r, echo = F, fig.asp = .6, fig.width=8}
+par(cex = 1.5, mgp = c(2, .7, 0), mar = c(3,3,1,1))
+plot(x, y, type = "l", lwd = 3
+     , ylab = "Density f(x)", xlab = "X", ylim = c(0, .5))
+text(2, .48, "pdf of a normal", cex = 1.3)
+
+make.line <- function(x, mu = 0, s2 = 1, ...){
+  y <- dnorm(x, mu, sqrt(s2))
+  lines(x = rep(x, 2), y = c(0, y) , ...)
+}
+
+make.poly <- function(a, b, mu = 0, s2 = 1, seq.by = .01, ...){
+  y <- dnorm(seq(a, b, seq.by), mu, sqrt(s2))
+  xx <- c(seq(a, b, seq.by), seq(b, a, -seq.by))
+  yy <- c(y, rep(0, length(y)))
+  polygon(xx, yy, border = NA, ...)
+}
+
+make.poly(-1.2, .3, col = "cornflowerblue")
+make.line(-1.2, lwd = 2, col = 1)
+make.line(.3, lwd = 2)
+make.line(-1.2, lwd = 2, col = 1, lty = 2, mu = -1.2, s2 = .8)
+make.line(.3, lwd = 2, col = 1, lty = 2, mu = .3, s2 = .8)
+lines(x, y, lwd = 2)
+text(-1.2, .48, "a")
+text(.3, .48, "b")
+```
+
+---
+
+### Density function in R
+
+```{r, echo = T}
+dnorm(0, mean = 0, sd = 1)
+```
+
+---
+
+### Density function in R
+
+```{r, echo = T}
+x <- seq(-3, 3, .01)
+
+head(x)
+y <- dnorm(x = x, mean = 0, sd = 1)
+
+head(y)
+```
+
+---
+
+### Density function in R
+
+```{r, fig.height=4, fig.width = 6, fig.align='center', echo = T}
+x <- seq(-3, 3, .01)
+y <- dnorm(x = x, mean = 0, sd = 1)
+
+plot(x, y, type = "l")
+```
+
+---
+class: my-one-page-font
+
+### Cumulative distribution function
+
+<div style="background-color: #f6effc ; padding: 10px; border: 3px solid #461a6c;">
+Definition <i>Cumulative distribution function:</i> Let <i>F</i> denote the cumulative distribution function (CDF) of random variable <i>X</i>. Then,
+\[F(x) = Pr(X \leq x).\]
+</div>
+
+**Example**
+
+```{r, echo = F, fig.asp = .4, fig.width=9}
+par(cex = 1.5, mgp = c(2.2, .7, 0), mar = c(3.5,3.5,1,1))
+layout(matrix(1:2, ncol = 2))
+plot(x, y, type = "l", lwd = 3
+     , ylab = "Density f(x)", xlab = "x", cex.lab = 1.5
+     , ylim = c(0, .45))
+text(-2.5, .43, "pdf", cex = 1.5)
+
+make.line <- function(x, mu = 0, s2 = 1, fun = "pdf", ...){
+  if(fun == "pdf"){
+    y <- dnorm(x, mu, sqrt(s2))
+  }else{
+    y <- pnorm(x, mu, sqrt(s2))
+    }
+  lines(x = rep(x, 2), y = c(0, y) , ...)
+}
+
+make.poly <- function(a, b, mu = 0, s2 = 1, seq.by = .01, fun = "pdf", ...){
+  if(fun == "pdf"){
+    y <- dnorm(seq(a, b, seq.by), mu, sqrt(s2))
+  }else{
+    y <- pnorm(seq(a, b, seq.by), mu, sqrt(s2))
+    }
+  xx <- c(seq(a, b, seq.by), seq(b, a, -seq.by))
+  yy <- c(y, rep(0, length(y)))
+  polygon(xx, yy, border = NA, ...)
+}
+
+make.poly(-3, .3, col = "cornflowerblue")
+make.line(.3, lwd = 3)
+lines(x, y, lwd = 3)
+text(.5, .43, ".3", cex = 1.5)
+
+plot(x, pnorm(x), type = "l", lwd = 3
+     , ylab = "F(x)", xlab = "x"
+     , cex.lab = 1.5)
+text(-2.5, .96, "CDF", cex = 1.5)
+
+# make.poly(-3, .3, col = "cornflowerblue", fun = "cdf")
+make.line(.3, lwd = 3, fun = "cdf")
+lines(x, pnorm(x), lwd = 3)
+text(1.3, .58, "(.3, .62)", cex = 1.5)
+lines(c(-3, .3), pnorm(rep(.3, 2)), lwd = 3)
+```
+
+---
+
+### Using CDF and pdf
+
+```{r, echo = F, fig.height=5, fig.width = 8, fig.align='center'}
+par(mar = c(4, 4, 1, 2), cex = 1.5, mgp = c(2, .7, 0))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density f(x)", xlab = "X", ylim = c(0, .45))
+text(2.1, .43, "pdf of a normal", cex = 1.2)
+
+make.line <- function(x, mu = 0, s2 = 1, ...){
+  y <- dnorm(x, mu, sqrt(s2))
+  lines(x = rep(x, 2), y = c(0, y) , ...)
+}
+
+make.poly <- function(a, b, mu = 0, s2 = 1, seq.by = .01, ...){
+  y <- dnorm(seq(a, b, seq.by), mu, sqrt(s2))
+  xx <- c(seq(a, b, seq.by), seq(b, a, -seq.by))
+  yy <- c(y, rep(0, length(y)))
+  polygon(xx, yy, border = NA, ...)
+}
+
+make.poly(-1.2, .3, col = "cornflowerblue")
+make.line(-1.2, lwd = 2, col = 1)
+make.line(.3, lwd = 2)
+lines(x, y, lwd = 2)
+text(-1.2, .43, "a", cex = 1.2)
+text(.3, .43, "b", cex = 1.2)
+```
+
+**What is $Pr(a < x \leq b)$**
+
+---
+
+### Using CDF and pdf
+
+```{r, echo = F, fig.height=5, fig.width = 8, fig.align='center'}
+par(mar = c(4, 4, 1, 2), cex = 1.5, mgp = c(2, .7, 0))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density f(x)", xlab = "X", ylim = c(0, .45))
+text(2.1, .43, "pdf of a normal", cex = 1.2)
+
+make.poly(-3, .3, col = "cornflowerblue")
+# make.poly(-3, -1.2, col = adjustcolor("mediumorchid", .5))
+# make.line(-1.2, lwd = 2, col = 1)
+make.line(.3, lwd = 2)
+lines(x, y, lwd = 2)
+# text(-1.2, .4, "a", cex = 1.2)
+text(.3, .43, "b", cex = 1.2)
+```
+
+**What is $Pr(a < x \leq b)$**
+
+---
+
+### Using CDF and pdf
+
+```{r, echo = F, fig.height=5, fig.width = 8, fig.align='center'}
+par(mar = c(4, 4, 1, 2), cex = 1.5, mgp = c(2, .7, 0))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density f(x)", xlab = "X", ylim = c(0, .45))
+text(2.1, .43, "pdf of a normal", cex = 1.2)
+
+make.poly(-3, -1.2, col = adjustcolor("mediumorchid", .5))
+make.line(-1.2, lwd = 2, col = 1)
+# make.line(.3, lwd = 2)
+lines(x, y, lwd = 2)
+text(-1.2, .43, "a", cex = 1.2)
+# text(.3, .43, "b", cex = 1.2)
+```
+
+**What is $Pr(a < x \leq b)$**
+
+---
+
+### Using CDF and pdf
+
+```{r, echo = F, fig.height=5, fig.width = 8, fig.align='center'}
+par(mar = c(4, 4, 1, 2), cex = 1.5, mgp = c(2, .7, 0))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density f(x)", xlab = "X", ylim = c(0, .45))
+# text(2.1, .43, "pdf of a normal", cex = 1.2)
+
+make.poly(-3, .3, col = "cornflowerblue")
+make.poly(-3, -1.2, col = adjustcolor("mediumorchid", .5))
+make.line(-1.2, lwd = 2, col = 1)
+make.line(.3, lwd = 2)
+lines(x, y, lwd = 2)
+text(-1.2, .43, "a", cex = 1.2)
+text(.4, .43, "b", cex = 1.2)
+```
+
+$$
+Pr(a < x \leq b) = F(b) - F(a)
+$$
+
+---
+
+### Using CDF and pdf
+
+```{r, echo = F, fig.height=3.7, fig.width = 5.5, fig.align='center'}
+par(mar = c(4, 4, 1, 2), cex = 1.5, mgp = c(2, .7, 0))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density f(x)", xlab = "X", ylim = c(0, .45))
+# text(2.1, .43, "pdf of a normal", cex = 1.2)
+
+make.poly(-3, .3, col = "cornflowerblue")
+make.poly(-3, -1.2, col = adjustcolor("mediumorchid", .5))
+make.line(-1.2, lwd = 2, col = 1)
+make.line(.3, lwd = 2)
+lines(x, y, lwd = 2)
+text(-1.2, .43, "a", cex = 1.2)
+text(.4, .43, "b", cex = 1.2)
+```
+
+$$
+Pr(a < x \leq b) = F(b) - F(a)
+$$
+
+```{r echo = T}
+pnorm(0.3, 0, 1) - pnorm(-1.2, 0, 1)
+```
+
+---
+class: my-one-page-font
+
+### Quantile function
+
+<div style="background-color: #f6effc ; padding: 10px; border: 3px solid #461a6c;">
+Definition <i>Quantile function</i>: The <i>p</i>th quantile of a distribution is the value <i>q</i><sub>p</sub> such that
+
+$$
+Pr(X \leq q_p) = p.
+$$
+</div>
+
+--
+
+**Reverse of the CDF**
+
+```{r, echo = F, fig.height=4, fig.width = 6, fig.align='center'}
+par(mar = c(3.5, 3.5, .2, 2), cex = 1.5, mgp = c(2, .7, 0))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density f(X)", xlab = "X")
+# text(2.3, .38, "pdf of a normal", cex = 1.3)
+
+make.poly(-3, qnorm(.75), col = adjustcolor("mediumorchid", .5))
+make.line(qnorm(.75), lwd = 2, col = 1)
+lines(x, y, lwd = 2)
+text(-.5, .15, "p = .75", cex = 1.2)
+text(qnorm(.75), .38, "?", cex = 1.2)
+```
+
+---
+
+### Quantile function
+
+```{r, echo = F, fig.height=4, fig.width = 6, fig.align='center'}
+par(mar = c(3.5, 3.5, .2, 2), cex = 1.5, mgp = c(2, .7, 0))
+plot(x, y, type = "l", lwd = 2
+     , ylab = "Density f(X)", xlab = "X")
+# text(2.3, .38, "pdf of a normal", cex = 1.3)
+
+make.poly(-3, qnorm(.75), col = adjustcolor("mediumorchid", .5))
+make.line(qnorm(.75), lwd = 2, col = 1)
+lines(x, y, lwd = 2)
+text(-.5, .15, "p = .75", cex = 1.2)
+text(qnorm(.75), .38, "?", cex = 1.2)
+```
+
+```{r echo = T}
+qnorm(.75, mean = 0, sd = 1)
+```
+
+---
+class: my-one-page-font
+
+# Signal Detection Theory model
+
+### SDT model for SD experiment
+
+- General idea: Perception strength $S$ varies gradually.
+- On average, perceptual strength is higher when the stimulus is present compared to absent.
+
+--
+
+$$
+S \sim
+\begin{cases}
+\mbox{Normal}(\mu = d', \sigma^2 = 1), \qquad \text{for signal-present trials,}\\
+\mbox{Normal}(\mu = 0, \sigma^2 = 1), \qquad \text{for signal-absent trials.}
+\end{cases}
+$$
+
+---
+
+### SDT model
+
+```{r echo = F, fig.asp = .6, fig.width=10}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+# make.line(0)
+# make.line(1.5, 1.5)
+# abline(v = 1, lwd = 2, col = "darkgreen")
+# axis(3, at = c(0, 1.5), labels = c("", ""))
+# mtext("d'", 3, line = .5, at = .75, cex = 1.3)
+# text(1.2, .03, "c", cex = 1.3)
+text(-2, .35, "Stimulus absent", cex = 1.3)
+text(3.5, .35, "Stimulus present", cex = 1.3)
+```
+
+---
+
+### SDT model
+
+```{r echo = F, fig.asp = .6, fig.width=10}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+# make.line(0)
+# make.line(1.5, 1.5)
+# abline(v = 1, lwd = 2, col = "darkgreen")
+axis(3, at = c(0, 1.5), labels = c("", ""), lwd = 3)
+mtext("d'", 3, line = .5, at = .75, cex = 2)
+# text(1.2, .03, "c", cex = 1.3)
+text(-2, .35, "Stimulus absent", cex = 1.3)
+text(3.5, .35, "Stimulus present", cex = 1.3)
+```
+
+$d' =$ Sensitivity.
+
+---
+
+### SDT model
+
+```{r echo = F, fig.asp = .6, fig.width=10}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 2, col = "darkgreen")
+axis(3, at = c(0, 1.5), labels = c("", ""), lwd = 3)
+mtext("d'", 3, line = .5, at = .75, cex = 2)
+text(1.2, .03, "c", cex = 1.3)
+text(-2, .35, "Stimulus absent", cex = 1.3)
+text(3.5, .35, "Stimulus present", cex = 1.3)
+```
+
+$c =$ Criterion, determines the response made.
+
+---
+
+### SDT model compared to HTM
+
+One parameter for perception ability, one for response bias:
+
+- $d'$ corresponds to $d$.
+- $c$ corresponds to $g$.
+
+---
+
+### SDT model predictions for H, M, F, C
+
+What corresponds to the probability of hit?
+
+```{r echo = F, fig.asp = .6, fig.width=9}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 4, col = "darkgreen")
+text(-2, .35, "Stimulus absent", cex = 1.3)
+text(3.5, .35, "Stimulus present", cex = 1.3)
+# make.poly(1, 5, mu = 1.5, col = adjustcolor("firebrick", .3))
+```
+
+---
+
+### SDT model predictions for H, M, F, C
+
+What corresponds to the probability of hit?
+
+```{r echo = F, fig.asp = .6, fig.width=9}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 4, col = "darkgreen")
+text(-2, .35, "Stimulus absent", cex = 1.2)
+text(3.5, .35, "Stimulus present", cex = 1.2)
+make.poly(1, 5, mu = 1.5, col = adjustcolor("firebrick", .3))
+```
+
+Area under the curve!
+
+---
+
+### SDT model predictions for H, M, F, C
+
+What corresponds to the probability of miss?
+
+```{r echo = F, fig.asp = .6, fig.width=9}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 4, col = "darkgreen")
+text(-2, .35, "Stimulus absent", cex = 1.2)
+text(3.5, .35, "Stimulus present", cex = 1.2)
+make.poly(-3, 1, mu = 1.5, col = adjustcolor("firebrick", .3))
+```
+
+---
+
+### SDT model predictions for H, M, F, C
+
+What corresponds to the probability of false alarm?
+
+```{r echo = F, fig.asp = .6, fig.width=9}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 4, col = "darkgreen")
+text(-2, .35, "Stimulus absent", cex = 1.2)
+text(3.5, .35, "Stimulus present", cex = 1.2)
+make.poly(1, 5, mu = 0, col = adjustcolor(1, .3))
+```
+
+---
+
+### SDT model predictions for H, M, F, C
+
+What corresponds to the probability of correct rejection?
+
+```{r echo = F, fig.asp = .6, fig.width=9}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 4, col = "darkgreen")
+text(-2, .35, "Stimulus absent", cex = 1.2)
+text(3.5, .35, "Stimulus present", cex = 1.2)
+make.poly(-3, 1, mu = 0, col = adjustcolor(1, .3))
+```
+
+---
+
+### SDT model equations
+
+```{r echo = F, fig.asp = .5, fig.width=6}
+par(mar = c(3,3,.2,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 4, col = "darkgreen")
+# text(-2, .35, "Stimulus absent", cex = 1.3)
+# text(3.5, .35, "Stimulus present", cex = 1.3)
+# make.poly(1, 5, mu = 1.5, col = adjustcolor("firebrick", .3))
+```
+
+```{r echo = T}
+c <- 0.5; dprime = 1 
+
+pnorm(c, mean = dprime, sd = 1)
+pnorm(c - dprime, mean = 0, sd = 1)
+```
+
+
+---
+
+### SDT model equations
+
+```{r echo = F, fig.asp = .5, fig.width=6}
+par(mar = c(3,3,.2,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     , cex.lab = 1.3
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 4)
+abline(v = 1, lwd = 4, col = "darkgreen")
+# text(-2, .35, "Stimulus absent", cex = 1.3)
+# text(3.5, .35, "Stimulus present", cex = 1.3)
+# make.poly(1, 5, mu = 1.5, col = adjustcolor("firebrick", .3))
+```
+
+**Equations for hits, $p_1$, and false alarms, $p_2$:**
+
+$$
+\begin{align}
+p_1 = p(\text{"Signal"}~|~\text{Signal}) & = 1 - \Phi(c - d'), \\
+p_2 = p(\text{"Signal"}~|~\text{Noise}) & = 1 - \Phi(c)
+\end{align}
+$$
+
+$\Phi =$ CDF of a standard normal.
+
+---
+
+### SDT model predictions
+
+.pull-left-45[
+
+```{r htm-roc, eval = FALSE, echo = TRUE}
+# Simulate predictions
+dprime <- 0.5
+crit <- seq(-3, 3, .01)
+fa <- 1 - pnorm(crit)
+h <- 1 - pnorm(crit - dprime)
+
+# Plot predictions
+par(mar = c(5, 4.5, 4, 2) + 0.1)
+plot(
+  fa, h, type = "l", las = 1,
+  ylim = c(0, 1), lwd = 3,
+  cex.lab = 2, cex.axis = 1.5
+)
+abline(0, 1, lty = "22")
+```
+
+]
+
+
+.pull-right-50[
+
+```{r ref.label = "htm-roc", fig.width = 5, fig.height = 4, fig.asp = 1}
+```
+
+]
+
+---
+
+### Receiving Operator Characteristics (ROC) for SDT
+
+```{r, htm-sensitivity, out.extra = 'id="zoom-margin"', fig.width = 7, fig.asp = 1}
+isosensitivity_sdt <- data.frame(
+  dprime = rep(seq(0, 1.5, length.out = 6), each = 601)
+  , crit = seq(-3, 3, .01)
+) %>% mutate(
+  hits = 1 - pnorm(crit - dprime)
+  , fa = 1 - pnorm(crit)
+)
+
+roc_plot <- list(
+  geom_abline(slope = 1, intercept = 0, color = grey(0.5), linetype = "dotted", size = 1.25)
+  , geom_line(size = 1.25)
+  , scale_x_continuous(limits = c(0, 1))
+  , scale_y_continuous(limits = c(0, 1))
+  , scale_color_viridis()
+  , coord_fixed()
+  , labs(
+    x = bquote("False alarm rate "~italic(hat(p))*"(\"Signal\" | Noise)")
+    , y = bquote("Hit rate "~italic(hat(p))*"(\"Signal\" | Signal)")
+  )
+  , theme_apa(base_size = 24, box = TRUE)
+  , theme(
+    legend.margin = margin(l = 0, r = 12)
+    , legend.title.align = 0.5
+    , axis.ticks.length = unit(rel(10), "pt")
+    , axis.title.x = element_text(margin = margin(t = 20))
+    , axis.title.y = element_text(margin = margin(r = 20))
+    , plot.margin = margin(b = 100)
+  )
+)
+
+sdt_sensitivity_plot <- ggplot(isosensitivity_sdt, aes(x = fa, y = hits, group = dprime, color = dprime)) +
+  roc_plot +
+  guides(color = guide_colorbar(title = expression("d'"), barwidth = 1.5, barheight = 10)) +
+  ggtitle("Isosensitivity curves")
+
+sdt_sensitivity_plot
+```
+
+
+---
+### ROC for SDT
+
+```{r, htm-bias, out.extra = 'id="zoom-margin"', fig.width = 7, fig.asp = 1, message = FALSE}
+isobias_sdt <- data.frame(
+  dprime = seq(0, 4, .01)
+  , crit = rep(seq(-1.5, 1.5, length.out = 9), each = 401)
+) %>% mutate(
+  hits = 1 - pnorm(crit - dprime)
+  , fa = 1 - pnorm(crit)
+)
+
+sdt_bias_plot <- ggplot(isobias_sdt, aes(x = fa, y = hits, group = crit, color = crit)) +
+  roc_plot +
+  scale_color_viridis(option = "A") +
+  guides(color = guide_colorbar(title = expression(italic(c)), barwidth = 1.5, barheight = 10)) +
+  ggtitle("Isobias curves")
+
+sdt_bias_plot
+```
+
+---
+### Predictions from SDT model
+
+- Oftentimes good fit to data.
+- SDT model is very popular because it is both flexible (ROC curves) and simple (Number of parameters).
+
+```{r, out.width = "45%", out.extra = 'id="zoom-margin"'}
+include_graphics("src/broeder-schuetz.png")
+```
+
+.footnote[(Bröder & Schütz, 2009)]
+
+---
+class: my-one-page-font
+
+### Signal Detection model in R
+
+```{r, out.width = "50%", out.extra = 'id="zoom-margin"'}
+include_graphics("src/sdexp.png")
+```
+
+| Stimulus | Present response | Absent Response | Total | 
+|:------|:-----:|:---------:|:------:| 
+|   Signal  |  75 (Hits)  |    25 (Misses)   |    100  | 
+|  Noise  |  30 (False Alarms) |   20 (Correct Rejections)   |   50  | 
+|  Total  |  105 |   45   |     | 
+
+```{r echo = T} 
+y <- c("hit" = 75, "fa" = 30)
+n <- c("signal" = 100, "noise" = 50)
+```
+
+---
+
+### Signal Detection model in R
+
+```{r echo = T, tidy = FALSE}
+#Log likelihood for signal detection
+sdtm <- function(par, y, n) { #par = c(d', c) y = c(hit, fa)
+  {{p1 <- 1 - pnorm(par["c"] - par["d"])}}
+  {{p2 <- 1 - pnorm(par["c"])}}
+  -2 * (dbinom(y["hit"], n["signal"], p1, log = TRUE) +
+    dbinom(y["fa"], n["noise"], p2, log = TRUE))
+}
+# Model fitting
+out <- optim(par = c(d = 0, c = 0), fn = sdtm, y = y, n = n)
+out$par
+```
+
+---
+class: my-one-page-font
+
+### Signal Detection model for >1 conditions
+
+- As with high-threshold models we often want to estimate the model for data with several conditions.
+- For example, in our signal detection experiment we might have noise trials, trials where the signal is presented for 12ms and trials where the signal is presented for 20ms.
+
+--
+
+```{r, echo = F, fig.asp=.6, fig.width = 8}
+par(mar = c(3,3,2,1), mgp = c(2, .7, 0), cex = 1.5)
+x <- seq(-3, 6, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+y.signal2 <- dnorm(x, 3.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 2
+     , xlim = c(-2, 6)
+     , frame.plot = F
+     , ylab = "Density"
+     , xlab = "Sensory Strength"
+     )
+lines(x, y.signal, col = "firebrick4", lwd = 2)
+lines(x, y.signal2, col = "darkblue", lwd = 2)
+# make.line(0)
+# make.line(1.5, 1.5)
+abline(v = .6, lwd = 2, col = "darkgreen")
+abline(v = 1.1, lwd = 2, col = "darkgreen")
+
+axis(3, at = c(0, 1.5, 3.5), labels = c("", "", ""))
+mtext(expression("d'"[1]), 3, line = .5, at = .5, cex = 1.5)
+mtext(expression("d'"[2]), 3, line = .5, at = 1.25, cex = 1.5)
+text(.4, .1, expression("c"[1]), cex = 1.3)
+text(1.3, .1, expression("c"[2]), cex = 1.3)
+
+text(-.1, .27, "Stimulus\n absent")
+text(1.7, .25, "Cond 1")
+text(3.5, .23, "Cond 2")
+```
+
+---
+class: my-one-page-font
+
+### Null counts
+
+- Null counts in the data are a big problem for SDT models.
+- When there are no misses, the hit-rate is $\hat{p}_h = 1.0.$
+- When $\hat{p}_h = 1.0$ then $\Phi^-1(\hat{p}_h) = \infty$ leading to an estimate of $d' = \infty.$
+
+--
+
+#### Correction for null counts
+
+$$
+\hat{p}_h = \frac{y_h + 0.5}{N_s + 1}
+$$
+
+$$
+\hat{p}_f = \frac{y_f + 0.5}{N_n + 1}
+$$
+
+.footnote[Snodgrass and Corwin (1988)]
+
+---
+layout: false
+class: inverse, middle, center
+
+
+# Wrap up
+
+---
+### Wrap up
+
+Signal Detection models imply that
+
+- perceptual strength (or memory strength) is graded/continuous.
+- perception is not all-or-none.
+
+--
+
+Signal Detection models
+
+- are flexible and simple.
+- can be extended to be even more flexible.
+
+---
+class: inverse, middle, center
+
+# :)
+

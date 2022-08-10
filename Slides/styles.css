@@ -1,0 +1,30 @@
+.left-col {
+	float: left;
+	width:48%;
+	}
+
+.right-col {
+	float: left;
+	width: 48%;
+	}
+
+.center {
+	float: center;
+	}
+	
+.sm	{
+    font-size: 80%;
+	}
+
+.boxed {
+	border: 2px solid LightSteelBlue;
+	padding: 10px;
+	width: 80%;
+	}
+	
+.boxed-h {
+	border: 2px solid LightSteelBlue;
+	padding: 2px;
+	width: 48%;
+	}
+
