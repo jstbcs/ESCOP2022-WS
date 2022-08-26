@@ -1,116 +1,132 @@
 ---
 title: "Your Turn!"
-subtitle: "Ordinal constraints"
+subtitle: "First brms model"
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 
 library(diagram)
 library(RColorBrewer)
 library(reshape2)
+library(curl)
 
 mycols <- RColorBrewer::brewer.pal(8, "Dark2")
+
+install.packages('curl')  #You will need to load the R package "curl" to use this cleaning code
+library(curl) 
+# See https://github.com/mdnunez/encodingN200 for more information about the data
+filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
+pdm <- read.csv(filename)
+
 ```
 
-Let's consider the three models just presented:
+We will use a simple Stroop data set throughout for the practical part. You can load it using the following code in `R`:
 
-```{r echo = F, fig.width=3, fig.height=3, fig.align='center'}
-par(mar = c(0, 0, 2.5, 0), cex = .9)
-layout(matrix(c(1,1,2,2,0,3,3,0)
-              , ncol = 4, byrow = T))
-
-myCol <- c('lightblue', 'lavender', 'darkseagreen1', "mistyrose1")
-names <- c("LL", "LH", "HL", "HH")
-o <- 1:4
-
-M <- matrix(nrow = length(o), ncol = length(o), data=0)
-M[1, 2] <- ''
-M[1, 3] <- ''
-M[2, 4] <- ''
-M[3, 4] <- ''
-
-plotmat(M
-        , pos = c(2, 2)
-        , name = names[c(2, 4, 1, 3)]
-        , curve = 0
-        , box.type="round"
-        , box.size=.06
-        , box.prop=.8
-        , box.col = myCol[c(2, 4, 1, 3)]
-        , arr.length=0
-        , box.cex = 1.2
-        , relsize = 1
-        , shadow.size = 0.007
-        )
-# plot(0, type='n', axes=FALSE, ann=FALSE)
-mtext(expression(M[4]: ~ "Disgust Only"), side = 3, cex = 1)
-
-M <- matrix(nrow = length(o), ncol = length(o), data=0)
-M[1, 2] <- ''
-M[1, 3] <- ''
-M[2, 4] <- ''
-M[3, 4] <- ''
-
-plotmat(M
-        , pos = c(1, 2, 1)
-        , name = names[c(4, 2, 3, 1)]
-        , curve = 0
-        , box.type="round"
-        , box.size=.06
-        , box.prop=.8
-        , box.col = myCol[c(4, 2, 3, 1)]
-        , arr.length=0
-        , box.cex = 1.2
-        , relsize = 1
-        , shadow.size = 0.007
-        )
-# plot(0, type='n', axes=FALSE, ann=FALSE)
-mtext(expression(M[1]: ~ "Consistent +"), side = 3, cex = 1)
-
-M <- matrix(nrow = length(o), ncol = length(o), data=0)
-M[1, 2] <- ''
-M[2, 3] <- ''
-M[1, 4] <- ''
-M[2, 4] <- ''
-M[3, 4] <- ''
-
-plotmat(M
-        , pos = c(3, 1)
-        , name = names[c(2, 4, 3, 1)]
-        , curve = 0
-        , box.type="round"
-        , box.size=.06
-        , box.prop=.8
-        , box.col = myCol[c(2, 4, 3, 1)]
-        , arr.length=0
-        , box.cex = 1.2
-        , relsize = 1
-        , shadow.size = 0.007
-        )
-# plot(0, type='n', axes=FALSE, ann=FALSE)
-mtext(expression(M[2]: ~ "+ Equality"), side = 3, cex = 1)
+```{r, echo = T, eval = F}
+install.packages('curl')  #You need to load the R package "curl" to use this cleaning code
+library(curl) 
 ```
 
-1. Read in the data, `bugs.csv`. Note that the design is within-participant (i.e. each participant evaluated a bug in each cell of the design). For convenience I get the data from wide format to long format.
+```{r, echo = T, eval = F}
+# See https://github.com/mdnunez/encodingN200 for more information about the data
+filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200
+                 /master/Data/N200_rt_window_150_275.csv")
+pdm <- read.csv(filename)
+```
 
 ```{r}
-dat <- read.csv("../data/bugs.csv")
-datl <- melt(dat, id.vars = c("Subject", "Gender", "Region", "Education"))
-datl$condition <- factor(datl$variable, labels = c("LL", "LH", "HL", "HH"))
-datl$fear <- with(datl, ifelse(condition %in% c("LL", "HL"), 0 , 1))
-datl$disgust <- with(datl, ifelse(condition %in% c("LL", "LH"), 0 , 1))
-datl <- subset(datl, !is.na(value))
+# See https://github.com/mdnunez/encodingN200 for more information about the data
+filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
+pdm <- read.csv(filename)
 ```
 
-2. Use `lmBF()` to compute the Bayes factors between the intercept-only model and all three encompassing models. Use the `posterior()` function to draw posterior samples (`iterations = 20000` should be enough).
+```{r echo = T}
+colnames(pdm) <- c('N200_latencies', 'N200_amplitudes'
+                   , 'RT', 'accuracy', 'condition', 'EEG_session'
+                   , 'experiment', 'session', 'subject')
 
-3. Compute Bayes factors between the three encompassing models and the three restricted models using the encompassing approach. You already know the prior probability of the constraint, now you also need the posterior probability of the constraint.
+# Take on the data from the first experiment
+pdm <- pdm[pdm$experiment == 1, ]  
 
-4. Make a table with the Bayes factors between these three models and the general unconstrained model.
+# Remove irrelevant columns
+pdm <- pdm[, -c(1:2)]
 
+# Convert from milliseconds to seconds
+pdm$RT <- pdm$RT/1000
+
+ntrial <- dim(pdm)[1]
+nsub <- length(unique(pdm$subject))
+```
+
+
+\vskip10mm
+
+1. Familiarize yourself with the data. Maybe use a plot or two, see which variables might be relevant.
+
+```{r}
+knitr::kable(head(pdm))
+```
+
+\newpage
+
+2. Suppose we wanted to model the accuracy of the responses using `brms`. As a first step, we will not use any predictors, but just model the responses provided and across incongruent and congruent trials. Here is the code (*warning:* this may take a while):
+
+```{r brmodel-rt, cache=T, warning=FALSE, message=FALSE, echo = T, results='hide'}
+library(brms)
+priors <- c(prior_string("normal(0, 1)", class = "Intercept"))
+model_fit <- brm(RT ~ 1
+                 , data = pdm
+                 , family = gaussian
+                 , prior = priors
+                 , chains = 2
+                 , iter = 1500
+                 , warmup = 750)
+```
+\vskip10mm
+
+You can see an overview over the estimated parameters using
+
+```{r echo = T}
+summary(model_fit)
+```
+
+3. Let's make sense of the results. First, what does the line represent? What do the columns represent? Then, what dare the estimates and do they make sense?
+
+4. Is this a good prior for response time? What would be better?
+
+\newpage
+
+Bonus. Suppose we wanted to model the accuracy of the responses using `brms`. As a first step, we will not use any predictors, but just model the responses provided and across incongruent and congruent trials. Here is the code (*warning:* this may take a while):
+
+```{r brmodel-resp, cache=T, warning=FALSE, message=FALSE, echo = T, results='hide'}
+library(brms)
+priors <- c(prior_string("normal(0, 1)", class = "Intercept"))
+model_fit <- brm(accuracy ~ 1
+                 , data = pdm
+                 , family = bernoulli(link = "logit")
+                 , prior = priors
+                 , chains = 2
+                 , iter = 1500
+                 , warmup = 750)
+```
+\vskip10mm
+
+You can see an overview over the estimated parameters using
+
+```{r echo = T}
+summary(model_fit)
+```
+
+Let's again make sense of the results. Be careful to properly understand what the estimate of .78 represents. It is not the probability of responding accurately (the observed proportion of accurate responses is `r round(mean(pdm$accuracy), 2)`. (*hint*: try the `inv.logit` from the `gtools` package.)
+
+```{r results='hide', eval = F}
+library(gtools)
+inv.logit(.78, min = 0, max = 1)
+```
+\vskip10mm
 
 ```{r, out.width = "15%", fig.align='right', echo = F}
-knitr::include_graphics("../slides/pics/do.png")
+knitr::include_graphics("../Slides/pics/do.png")
 ```
