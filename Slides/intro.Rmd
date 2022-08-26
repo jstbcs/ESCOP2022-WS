@@ -439,6 +439,127 @@ lines(outer,post2,col='darkgreen',lwd=2)
 abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
 ```
 
+## Posterior-based summaries of results
+
+**Once we have obtained a posterior distribution, how can we summarize the results?**
+
+\vskip5mm
+
+\centering
+```{r, fig.asp=.5, fig.width = 6}
+par(mar = c(3,3,2,1), mgp = c(2, .7, 0))
+ppassing <- seq(0, 1, .0001)
+layout(matrix(1:2, ncol = 2))
+
+y <- dbeta(ppassing, 5, 5)
+
+plot(ppassing, y, ylab = "Density", xlab = "Probability of eating"
+     , type = "l", main = "Prior", ylim = c(0, 7))
+legend("topleft", legend = "Beta(a = 5, b = 5)", bty = "n")
+
+y3 <- dbeta(ppassing, 5 + 21, 5+9)
+
+plot(ppassing, y3, ylab = "Density", xlab = "Probability of eating"
+     , type = "l", main = "Posterior", ylim = c(0, 7))
+```
+
+## Posterior-based summaries of results
+
+**Mean or Median?**
+
+\vskip5mm
+
+
+\centering
+
+```{r, fig.asp=.7, fig.width = 5, out.width="80%"}
+par(mar = c(3,3,2,1), mgp = c(2, .7, 0))
+ppassing <- seq(0, 1, .0001)
+
+plot(ppassing, y3, ylab = "Density", xlab = "Probability of eating"
+     , type = "l", main = "Posterior", ylim = c(0, 7))
+```
+
+## Posterior-based summaries of results
+
+**Reporting uncertainty.**
+
+\vskip5mm
+
+\centering
+```{r, fig.asp=.5, fig.width = 6}
+par(mar = c(3,3,2,1), mgp = c(2, .7, 0))
+ppassing <- seq(0, 1, .0001)
+layout(matrix(1:2, ncol = 2))
+
+
+plot(ppassing, y3, ylab = "Density", xlab = "Probability of eating"
+     , type = "l", main = "Posterior", ylim = c(0, 7))
+
+y <- .5 * dbeta(ppassing, 18, 33) + .5 * dbeta(ppassing, 26, 14)
+
+plot(ppassing, y, ylab = "Density", xlab = "Probability of eating"
+     , type = "l", main = "Posterior", ylim = c(0, 7))
+```
+
+## Posterior-based summaries of results
+
+Estimation intervals
+
+>- Credible interval.
+>- Highest density interval.
+
+\vskip5mm
+
+```{r, fig.asp=.5, fig.width = 6}
+par(mar = c(3,3,2,1), mgp = c(2, .7, 0))
+layout(matrix(1:2, ncol = 2))
+ppassing <- seq(0, 1, .0001)
+
+dmix <- function(y){
+  .5 * dbeta(y, 18, 33) + .5 * dbeta(y, 26, 14)
+}
+
+y <- dmix(ppassing)
+
+pmix = function(y){
+  .5 * pbeta(y, 18, 33) + .5 * pbeta(y, 26, 14)
+}#pmist2n
+
+qmix = function(q){
+  # the min minmax below is computed to supply a range to the solver
+  # the solution must be between the min and max
+  # quantile of the mixed distributions
+  minmax <- range(qbeta(q,18, 33),qbeta(q,26, 14)) 
+  uniroot(function(x) pmix(x)-q,
+          interval = minmax,
+          extendInt="yes",
+          tol = 10^{-16})$root  
+}#qmist2n
+
+lc <- qmix(0.05)
+uc <- qmix(0.95)
+
+plot(ppassing, y, ylab = "Density", xlab = "Probability of eating"
+     , type = "l")
+xi <- ppassing[ppassing > lc & ppassing < uc]
+polygon(c(xi, rev(xi)), c(dmix(xi), rep(0, length(xi)))
+        , col = adjustcolor(2, .3))
+
+library(HDInterval)
+tst <- c(rbeta(1e5, 18, 33), rbeta(1e5, 26, 14))
+int <- hdi(density(tst), .90, allowSplit=TRUE)
+
+plot(ppassing, y, ylab = "Density", xlab = "Probability of eating"
+     , type = "l")
+xi <- c(ppassing[ppassing > int[1,1] & ppassing < int[1,2]])
+polygon(c(xi, rev(xi)), c(dmix(xi), rep(0, length(xi)))
+        , col = adjustcolor(2, .3))
+xi <- c(ppassing[ppassing > int[2,1] & ppassing < int[2,2]])
+polygon(c(xi, rev(xi)), c(dmix(xi), rep(0, length(xi)))
+        , col = adjustcolor(2, .3))
+```
+
 ## Questions?
 
 \vskip5mm
