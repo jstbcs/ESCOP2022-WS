@@ -12,23 +12,25 @@ Workshop on Bayesian Cognitive Modeling using brms
 - Intro cognitive modeling signal-detection (Julia) & DDM (Michael) (30mins)
 - Practical either SDT (Julia) or DDM (Michael) (15min) - blog posts
 
-### Stroop data
+### Perceptual Decision Making (PDM) task data
 
 ```R
 install.packages('curl')  #You will need to load the R package "curl" to use this cleaning code
 library(curl) 
 
-filename <- curl("https://raw.githubusercontent.com/PerceptionCognitionLab/data0/master/contexteffects/FlankerStroopSimon/LEF_stroop.csv")
-stroop <- read.csv2(filename, header=TRUE, dec=".")
 
-stroop$cond <- as.numeric(factor(stroop$congruency))  #congruent -> 1, incongruent -> 2, neutral -> 3
-ntrial <- length(stroop[stroop$ID == stroop$ID[1], 1])
-nsub <- length(unique(stroop$ID))
-stroop$trial <- rep(1:ntrial, nsub)
-stroop$rt <- stroop$RT/1000  #rt data in seconds
+# See https://github.com/mdnunez/encodingN200 for more information about the data
+filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
+pdm <- read.csv(filename)
+colnames(pdm) <- c('N200_latencies', 'N200_amplitudes', 'RT', 'accuracy', 'condition', 'EEG_session', 'experiment', 'session', 'subject')
+pdm <- pdm[pdm$experiment == 1, ]  # Take on the data from the first experiment
+pdm$N200_latencies <- pdm$N200_latencies/1000  # Convert from milliseconds to seconds
+pdm$RT <- pdm$RT/1000 # Convert from milliseconds to seconds
 
-stroop <- stroop[stroop$rt > .2 & stroop$rt < 2, ]
-stroop <- subset(stroop, accuracy == 1 & cond != 3)
+ntrial <- dim(pdm)[1]
+nsub <- length(unique(pdm$subject))
+
+head(pdm)
 ```
 
 
