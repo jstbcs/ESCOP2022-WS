@@ -1,0 +1,16 @@
+# Resources list
+
+## Introduction to Bayesian statistics
+
+- webinar on Bayesian statistics with JASP: https://www.youtube.com/watch?v=W0yTnqw5dtY
+- Reference: Etz, A., Gronau, Q. F., Dablander, F., Edelsbrunner, P. A., & Baribault, B. (2018). How to become a Bayesian in eight easy steps: An annotated reading list. Psychonomic Bulletin & Review, 25(1), 219-234.
+- Etz, A., Haaf, J. M., Rouder, J. N., & Vandekerckhove, J. (2018). Bayesian inference and testing any hypothesis you can specify. Advances in Methods and Practices in Psychological Science, 1(2), 281-295.
+
+## Introduction to Bayesian hierarchical modeling
+
+- Tutorial including brms code: Veenman, M., Stefan, A., & Haaf, J. M. (2022). Bayesian Hierarchical Modeling: An Introduction and Reassessment. https://psyarxiv.com/pskvx/
+
+## Introduction to cognitive modeling
+
+- Book: Lee, M. D., & Wagenmakers, E. J. (2014). Bayesian cognitive modeling: A practical course. Cambridge university press.
+- Book: Farrell, S., & Lewandowsky, S. (2018). Computational modeling of cognition and behavior. Cambridge University Press.
