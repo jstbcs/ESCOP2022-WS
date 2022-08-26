@@ -1,0 +1,447 @@
+---
+title: "Introduction to Bayesian Statistics"
+subtitle: "Bayesian Modeling in brms"
+author: Julia Haaf
+date: September, 2022
+output:
+  beamer_presentation:
+    theme: "metropolis"
+    fonttheme: "structurebold"
+    fig_caption: false
+    incremental: true
+    
+#bibliography: "lab.bib"
+csl: "apa6.csl"
+    
+header-includes   :
+   - \usepackage{bm}
+   - \usepackage{amsmath}
+   - \usepackage{setspace}
+   - \usepackage{pcl} 
+   - \usepackage{color,xcolor}
+   - \usepackage{colortbl}
+   - \definecolor{green}{rgb}{0,.30,0}
+   - \definecolor{red}{rgb}{.7,0,0}
+   - \definecolor{blue}{rgb}{0,0,.8}
+   - \definecolor{pink2}{rgb}{255, 0, 255}
+   - \definecolor{green2}{rgb}{.01, .64, .29}
+   - \definecolor{lightgray}{rgb}{0.9, 0.9, 0.9}
+   - \definecolor{darkgray}{rgb}{0.5, 0.5, 0.5}
+   - \usepackage{wasysym}
+   - \usepackage{cancel}
+   - \usepackage{booktabs}
+   - \usepackage{longtable}
+   - \usepackage{array}
+   - \usepackage{multirow}
+   - \usepackage{wrapfig}
+   - \usepackage{float}
+   - \usepackage{colortbl}
+   - \usepackage{pdflscape}
+   - \usepackage{tabu}
+   - \usepackage{threeparttable}
+   - \usepackage{lmodern}
+   - \usepackage{graphicx}
+   - \usepackage{tikz}
+   - \setbeamercolor{postit}{fg=black,bg=lightgray}
+   - \newcommand*\quotefont{\fontfamily{LinuxLibertineT-LF}}
+   - \newcommand*\openquote{{\quotefont\space\fontsize{50}{10}\selectfont\color{darkgray}\textsubscript{``}}}
+   - \newcommand*\closequote{{\quotefont\space\fontsize{50}{10}\selectfont\color{darkgray}\textsuperscript{''}}}
+
+   - \newcommand\Fontvi{\fontsize{8}{10}\selectfont}
+   - \newcommand\Fontsmoll{\fontsize{6}{7.2}\selectfont}
+   - \newcommand\Fontnorm{\fontsize{10}{12.2}\selectfont}
+---
+
+```{r,echo=F,eval=T,warning=F,message=F}
+knitr::opts_chunk$set(echo = FALSE,message=FALSE, warning=FALSE)
+library(diagram)
+library('retimes')
+library(mvtnorm)
+library(tmvtnorm)
+library(msm)
+library(curl)
+library(MCMCpack)
+library("spatialfil")
+library("ggplot2")
+library("papaja")
+library("shape")
+library("cowplot")
+library("gridExtra")
+library("plyr")
+library("dplyr")
+library("psych")
+library("RColorBrewer")
+library("devtools")
+library("readxl")
+library("reshape2")
+library(BayesFactor)
+library("knitr")
+library(kableExtra)
+library("plotrix")
+library("colorspace")
+library(corrplot)
+library(rstan)
+rstan_options(auto_write = TRUE)
+set.seed=123
+
+myCols <- brewer.pal(8, "Dark2")
+```
+
+## Disclaimer
+
+- Bayesian statistics is complicated.
+- Hierarchical modeling is complicated.
+- Cognitive modeling is complicated.
+- This is an extremely brief primer.
+- Check out resources here: \url{https://github.com/jstbcs/ESCOP2022-WS/blob/main/resources.txt}.
+
+## An Example
+
+- This is Frank.
+- Frank likes to eat but he might be a tad picky.
+- We want to model how often Frank eats his food in a month.
+
+\vskip5mm
+
+\centering
+![](pics/frank4.jpeg){width=200px}
+
+## An Example
+
+Is Frank a picky eater?
+
+- $Y \sim \mbox{Binomial}(\theta, 30),$ modeling how often out of 30 Frank eats his food.
+- $\theta = .5,$ assuming the probability of eating is 50/50.
+
+\vskip10mm
+
+\centering
+![](pics/frank4.jpeg){width=150px}
+
+## Models, an Example
+
+Predictions on data, based on the model $Y \sim \mbox{Binomial}(\theta,30)$, $\theta = .5.$
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5))
+x=0:30
+m=dbinom(x,30,.5)
+par(cex=1.5,mgp=c(2,.7,0))
+plot(x,m,typ='h',xlab="Meals eaten",ylab="Probability",ylim=c(0,.3), yaxt = "n")
+axis(2, seq(0, .3, .1))
+points(x,m,pch=19,cex=1.3,col='slateblue')
+```
+
+## Data
+
+Let's say he ate 21 out of 30 meals. $Y = 21.$
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5))
+x=0:30
+m=dbinom(x,30,.5)
+par(cex=1.5,mgp=c(2,.7,0))
+plot(x,m,typ='h',xlab="Meals eaten",ylab="Probability",ylim=c(0,.3), yaxt = "n")
+axis(2, seq(0, .3, .1))
+points(x,m,pch=19,cex=1.3,col='slateblue')
+points(x[x == 21], m[x == 21], pch = 19, cex = 1.3, col = "red")
+```
+
+## Priors
+
+In Bayesian statistical analysis we typically would use a prior *distribution* for parameters.
+\[ \begin{aligned}
+Y|\theta &\sim \mbox{Binomial}(\theta,N),\\
+\theta &\sim \mbox{Beta}(a,b).
+\end{aligned}
+\]
+
+If we assume Frank will most likely eat 5 out of 10 meals we may use $a = 5$ and $b = 5$.
+
+## Posterior Updating
+
+```{r}
+Y=21
+N=30
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+from $Pr(\theta)$... 
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n")
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+# lines(outer,post,col='darkgreen',lwd=2)
+text(.1,2,"Prior",adj=.5)
+# text(.9,4,"Posterior\n (Conditional)",adj=.5)
+text(.8, 4.5, expression(theta ~ "~" ~ "Beta(5,5)"))
+```
+
+## Posterior Updating
+
+from $Pr(\theta)$... to $Pr(\theta|Y)$.
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n")
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+text(.1,2,"Prior",adj=.5)
+text(.9,4,"Posterior",adj=.5)
+```
+
+## Bayes' Rule:
+
+\[
+Pr(\theta|Y) = Pr(\theta)\frac{Pr(Y|\theta)}{Pr(Y)},
+\]
+
+- $Pr(\theta|Y)$ is the *posterior distribution* of $\theta$.
+- $Pr(\theta)$ is the *prior distribution* of $\theta$.
+- $Pr(Y|\theta)$ is the probability distribution of the data.
+- $Pr(Y)$ is the prediction for the data.
+
+## Did we choose a good prior?
+
+What should the prior on Frank's eating habit look like?
+
+```{r}
+Y=7
+N=10
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+layout(matrix(1:4, ncol = 2, byrow = T))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+
+a <- 1
+b <- 1
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+
+a <- 3
+b <- 7
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+
+a <- 0.5
+b <- 0.5
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+```
+
+
+
+## Matching priors to goals of analysis
+
+- There are priors that are most suitable for estimation.
+- And there are priors most suitable for model comparison.
+- And there are priors that are pretty good for both.
+- Oh, and not everyone agrees on this classifications (or what "good means").
+
+\vskip1mm
+\centering
+![](pics/goalscat.jpeg){width=170px}
+
+## Why Priors for Estimation Don't Matter That Much
+
+Frank eats his food 7 out of 10 times.
+
+```{r}
+Y=7
+N=10
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+layout(matrix(1:4, ncol = 2, byrow = T))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+legend("topleft", bty = "n", legend = c("Prior", "Posterior"), fill = c('darkblue', 'darkgreen'))
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 1
+b <- 1
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 3
+b <- 7
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 0.5
+b <- 0.5
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 4))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+```
+
+## Why Priors for Estimation Don't Matter That Much
+
+Frank eats his food 21 out of 30 times.
+
+```{r}
+Y=21
+N=30
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+layout(matrix(1:4, ncol = 2, byrow = T))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+legend("topleft", bty = "n", legend = c("Prior", "Posterior"), fill = c('darkblue', 'darkgreen'))
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 1
+b <- 1
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 3
+b <- 7
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 0.5
+b <- 0.5
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="", yaxt = "n", ylim = c(0, 5.5))
+axis(2, seq(0, 5, 1))
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+```
+
+## Why Priors for Estimation Don't Matter That Much
+
+Frank eats his food 650 out of 1000 times.
+
+```{r}
+Y=650
+N=1000
+a=5
+b=5
+theta=seq(0,1,.001)
+outer=c(-.1,0,theta,1,1.1)
+prior=c(0,0,dbeta(theta,a,b),0,0)
+post=dbeta(outer,Y+a,N-Y+b)
+likeD=dbeta(outer,Y+1,N-Y+1)
+```
+
+```{r, fig.asp=.6, fig.width=7}
+par(mar = c(3,3,0.5, 0.5), cex=1.5,mgp=c(2,.7,0))
+layout(matrix(1:4, ncol = 2, byrow = T))
+plot(outer,post,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+# axis(2, seq(0, 9, 1))
+lines(outer,prior,col='darkblue',lwd=2)
+lines(outer,post,col='darkgreen',lwd=2)
+legend("topleft", bty = "n", legend = c("Prior", "Posterior"), fill = c('darkblue', 'darkgreen'))
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 1
+b <- 1
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 3
+b <- 7
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+
+a <- 0.5
+b <- 0.5
+prior2 <- c(0,0,dbeta(theta,a,b),0,0)
+post2 <- dbeta(outer,Y+a,N-Y+b)
+plot(outer,post2,type='n',xlab=expression(theta),ylab=expression(paste("Probability Density ")),col='darkgreen',lwd=2,main="")
+lines(outer,prior2,col='darkblue',lwd=2)
+lines(outer,post2,col='darkgreen',lwd=2)
+abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
+```
+
+## Questions?
+
+\vskip5mm
+
+\centering
+![](pics/questioncat.jpeg){width=250px}
