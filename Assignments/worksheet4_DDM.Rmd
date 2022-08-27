@@ -113,8 +113,7 @@ matplot(time, random_walks,type='l')
 
 ## 1b. Change the standard deviation of the random walk to 1, what happens? What has changed compared to the original figure?
 
-
-\newpage
+\vskip10mm
 
 ##Below is the code to fit the data using EZ Diffusion
 
@@ -178,10 +177,14 @@ mcmc_initials <- function() {
   )
 }
 
-bayes_ddm <- brm(ddm_formula, family=wiener(link_bs ="identity",link_ndt="identity"), init=mcmc_initials, data=pdm_reduced)
+bayes_ddm <- brm(ddm_formula, 
+                 family=wiener(link_bs ="identity",link_ndt="identity"), 
+                 init=mcmc_initials, data=pdm_reduced)
+summary(bayes_ddm)
+plot(bayes_ddm)
 ```
 
-## 2. Fit this model and compare the output to `ezdiff()`. Note that the model fitting will take a long time. Do you draw the same conclusions? What do you get from the Bayesian DDM that you do not get from the EZ Diffusion?
+## 2. Fit this model and compare the output to `ezdiff()`. Note that the model fitting will take a long time. Do you draw the same conclusions? What do you learn from the Bayesian DDM that you do not learn from the EZ Diffusion?
 
 
 
