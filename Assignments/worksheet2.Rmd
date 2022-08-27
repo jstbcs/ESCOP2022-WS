@@ -1,0 +1,105 @@
+---
+title: "Complete this during the 2nd slide show!"
+subtitle: "Hierarchical linear regression in brms"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(diagram)
+library(RColorBrewer)
+library(reshape2)
+library(curl)
+library(brms)
+
+mycols <- RColorBrewer::brewer.pal(8, "Dark2")
+
+filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
+pdm <- read.csv(filename)
+
+colnames(pdm) <- c('N200_latencies', 'N200_amplitudes', 
+    'RT', 'accuracy', 'condition', 'EEG_session', 
+    'experiment', 'session', 'subject')
+
+pdm <- pdm[pdm$experiment == 1, ]
+
+pdm$N200_latencies <- pdm$N200_latencies/1000
+
+pdm$RT <- pdm$RT/1000
+
+bayes_lmext <- brm(RT ~ N200_latencies*N200_amplitudes, data=pdm)
+
+bayes_anova <- brm(RT ~ factor(condition)*factor(accuracy), data=pdm)
+
+bayes_final <- brm(RT ~ (1|subject) + N200_latencies*N200_amplitudes, data=pdm)
+
+```
+
+We will again use the PDM data set, but with some different variables. You can load it using the following code in `R`:
+
+```{r, echo = T, eval = F}
+library(curl) 
+```
+
+```{r, echo = T, eval = F}
+# See https://github.com/mdnunez/encodingN200 for more information about the data
+# See https://github.com/mdnunez/encodingN200
+pdmdat <- curl("https://tinyurl.com/PDMdataESCOP2022")
+pdm <- read.csv(pdmdat)
+```
+
+```{r, echo = T, eval = F}
+
+colnames(pdm) <- c('N200_latencies', 'N200_amplitudes', 
+    'RT', 'accuracy', 'condition', 'EEG_session', 
+    'experiment', 'session', 'subject')
+
+pdm <- pdm[pdm$experiment == 1, ]
+
+pdm$N200_latencies <- pdm$N200_latencies/1000
+
+pdm$RT <- pdm$RT/1000
+
+head(pdm)
+```
+
+
+\vskip10mm
+
+1. What is the brms code to estimate a linear regression with *RT* as the dependent variable, *N200_latencies* and *N200_amplitudes* as the independent variables, and *an interaction term*?
+
+The `summary()` should output something like this:
+
+```{r, echo = F, eval = T}
+summary(bayes_lmext)
+```
+
+\vskip10mm
+
+2. What effects are significant in this model?
+
+```{r, echo = T, eval = F}
+bayes_anova <- brm(RT ~ factor(condition)*factor(accuracy), data=pdm)
+summary(bayes_anova)
+```
+
+```{r, echo = T, eval = T}
+summary(bayes_anova)
+```
+
+\vskip10mm
+
+3. What is the brms code to estimate a linear regression with *RT* as the dependent variable, *N200_latencies* and *N200_amplitudes* as the independent variables, an *interaction term*, and a random intercept for each *subject*?
+
+The `summary()` should output something like this:
+
+```{r, echo = F, eval = T}
+summary(bayes_final)
+```
+
+\vskip10mm
+
+```{r, out.width = "15%", fig.align='right', echo = F}
+knitr::include_graphics("../Slides/pics/do.png")
+```
