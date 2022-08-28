@@ -22,7 +22,7 @@ pdm <- read.csv(filename)
 
 ```
 
-We will use a simple Stroop data set throughout for the practical part. You can load it using the following code in `R`:
+We will use a simple Perceptual Decision Making (PDM) data set throughout for the practical part. You can load it using the following code in `R`:
 
 ```{r, echo = T, eval = F}
 install.packages('curl')  #You need to load the R package "curl" to use this cleaning code

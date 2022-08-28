@@ -1,15 +1,15 @@
 # ESCOP2022-WS
 Workshop on Bayesian Cognitive Modeling using brms
 
-**Instructors: Julia M. Haaf & Michael D. Nunez from the Psychological Methods group at the University of Amsterdam**
+**Instructors: Julia M. Haaf & Michael D. Nunez from the [Amsterdam Mathematical Psychology Laboratory](https://www.ampl-psych.com/) at the University of Amsterdam**
 
 ### Overview
 
-- Intro to Bayes - Julia (15-20min)
+- Intro to Bayes - Julia (20min)
 - Practical usign brms but non-hierarchical - Julia (see Bayes stats course) (10min)
-- Bayesian (multilevel) regression - Michael (20min)
-- Practical (see Bayes stats course) - Michael (25min)
-- Intro cognitive modeling signal-detection (Julia) & DDM (Michael) (30mins)
+- Bayesian hierarchical regression (20min) and Practical (25min) - Michael (total: 45min)
+- Intro to cognitive modeling: signal-detection (Julia) (15min)
+- Intro to cognitive modeling: DDM (Michael) (15min)
 - Practical either SDT (Julia) or DDM (Michael) (15min) - blog posts
 
 ### Perceptual Decision Making (PDM) task data
