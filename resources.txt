@@ -14,3 +14,7 @@
 
 - Book: Lee, M. D., & Wagenmakers, E. J. (2014). Bayesian cognitive modeling: A practical course. Cambridge university press.
 - Book: Farrell, S., & Lewandowsky, S. (2018). Computational modeling of cognition and behavior. Cambridge University Press.
+
+## Signal-detection with brms
+
+- https://mvuorre.github.io/posts/2017-10-09-bayesian-estimation-of-signal-detection-theory-models/
