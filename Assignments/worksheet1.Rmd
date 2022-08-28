@@ -50,9 +50,6 @@ colnames(pdm) <- c('N200_latencies', 'N200_amplitudes'
 # Take on the data from the first experiment
 pdm <- pdm[pdm$experiment == 1, ]  
 
-# Remove irrelevant columns
-pdm <- pdm[, -c(1:2)]
-
 # Convert from milliseconds to seconds
 pdm$RT <- pdm$RT/1000
 
