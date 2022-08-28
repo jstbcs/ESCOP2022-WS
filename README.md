@@ -18,17 +18,9 @@ Workshop on Bayesian Cognitive Modeling using brms
 install.packages('curl')  #You will need to load the R package "curl" to use this cleaning code
 library(curl) 
 
-
 # See https://github.com/mdnunez/encodingN200 for more information about the data
-filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
-pdm <- read.csv(filename)
-colnames(pdm) <- c('N200_latencies', 'N200_amplitudes', 'RT', 'accuracy', 'condition', 'EEG_session', 'experiment', 'session', 'subject')
-pdm <- pdm[pdm$experiment == 1, ]  # Take on the data from the first experiment
-pdm$N200_latencies <- pdm$N200_latencies/1000  # Convert from milliseconds to seconds
-pdm$RT <- pdm$RT/1000 # Convert from milliseconds to seconds
-
-ntrial <- dim(pdm)[1]
-nsub <- length(unique(pdm$subject))
+pdmdat <- curl("https://tinyurl.com/dataBayesCogMod")
+pdm <- read.csv(pdmdat)
 
 head(pdm)
 ```
