@@ -15,18 +15,8 @@ library(brms)
 
 mycols <- RColorBrewer::brewer.pal(8, "Dark2")
 
-filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
-pdm <- read.csv(filename)
-
-colnames(pdm) <- c('N200_latencies', 'N200_amplitudes', 
-    'RT', 'accuracy', 'condition', 'EEG_session', 
-    'experiment', 'session', 'subject')
-
-pdm <- pdm[pdm$experiment == 1, ]
-
-pdm$N200_latencies <- pdm$N200_latencies/1000
-
-pdm$RT <- pdm$RT/1000
+pdmdat <- curl("https://tinyurl.com/dataBayesCogMod")
+pdm <- read.csv(pdmdat)
 
 bayes_lmext <- brm(RT ~ N200_latencies*N200_amplitudes, data=pdm)
 
@@ -44,23 +34,8 @@ library(curl)
 
 ```{r, echo = T, eval = F}
 # See https://github.com/mdnunez/encodingN200 for more information about the data
-pdmdat <- curl("https://tinyurl.com/PDMdataESCOP2022")
+pdmdat <- curl("https://tinyurl.com/dataBayesCogMod")
 pdm <- read.csv(pdmdat)
-```
-
-```{r, echo = T, eval = F}
-
-colnames(pdm) <- c('N200_latencies', 'N200_amplitudes', 
-    'RT', 'accuracy', 'condition', 'EEG_session', 
-    'experiment', 'session', 'subject')
-
-pdm <- pdm[pdm$experiment == 1, ]
-
-pdm$N200_latencies <- pdm$N200_latencies/1000
-
-pdm$RT <- pdm$RT/1000
-
-head(pdm)
 ```
 
 
