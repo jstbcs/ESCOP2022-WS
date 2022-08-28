@@ -1,5 +1,5 @@
 ---
-title: "Introduction to Bayesian Statistics"
+title: "Cognitive Modeling Part I"
 subtitle: "Bayesian Modeling in brms"
 author: Julia Haaf
 date: September, 2022
@@ -85,49 +85,98 @@ rstan_options(auto_write = TRUE)
 set.seed=123
 
 myCols <- brewer.pal(8, "Dark2")
+
+make.line <- function(x, mu = 0, s2 = 1, ...){
+  y <- dnorm(x, mu, sqrt(s2))
+  lines(x = rep(x, 2), y = c(0, y) , ...)
+}
+
+make.poly <- function(a, b, mu = 0, s2 = 1, seq.by = .01, ...){
+  y <- dnorm(seq(a, b, seq.by), mu, sqrt(s2))
+  xx <- c(seq(a, b, seq.by), seq(b, a, -seq.by))
+  yy <- c(y, rep(0, length(y)))
+  polygon(xx, yy, border = NA, ...)
+}
+
 ```
 
-## Signal detection models
+## A brief introduction to cognitive modeling
 
-1. Signal detection experiments
-2. Signal detection models
+1. Cognitive modeling - the motivation
+2. Signal detection
 
-## Signal detection experiment
+## Cognitive modeling - motivation
 
-```{r, out.width = "60%", out.extra = 'id="zoom-margin"'}
-include_graphics("src/sdexp.png")
+```{r}
+# See https://github.com/mdnunez/encodingN200 for more information about the data
+filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
+pdm <- read.csv(filename)
 ```
 
-| Stimulus | Present response | Absent Response | Total | 
-|:------|:-----:|:---------:|:------:| 
-|   Signal  |  75  |    25   |    100  | 
-|  Noise  |  30 |   20   |   50  | 
-|  Total  |  105 |   45   |     | 
+```{r}
+colnames(pdm) <- c('N200_latencies', 'N200_amplitudes'
+                   , 'RT', 'accuracy', 'condition', 'EEG_session'
+                   , 'experiment', 'session', 'subject')
 
-## Signal detection experiment
+# Take on the data from the first experiment
+pdm <- pdm[pdm$experiment == 1, ]  
 
-```{r, out.width = "60%", out.extra = 'id="zoom-margin"'}
-include_graphics("src/sdexp.png")
+# Remove irrelevant columns
+pdm <- pdm[, -c(1:2)]
+
+# Convert from milliseconds to seconds
+pdm$RT <- pdm$RT/1000
+
+ntrial <- dim(pdm)[1]
+nsub <- length(unique(pdm$subject))
+
+acc.sub <- with(pdm, tapply(accuracy, subject, mean))
+rt.sub <- with(pdm, tapply(RT, subject, mean))
+
 ```
 
-| Stimulus | Present response | Absent Response | Total | 
-|:------|:-----:|:---------:|:------:| 
-|   Signal  |  75 (Hits)  |    25 (Misses)   |    100  | 
-|  Noise  |  30 (False Alarms) |   20 (Correct Rejections)   |   50  | 
-|  Total  |  105 |   45   |     | 
+```{r}
 
-## Signal Detection Theory vs. Signal detection experiment
+tab <- rbind(round(acc.sub[c(1, 6, 12)], 2), paste0(round(rt.sub[c(1, 6, 12)] * 1000), "ms"))
+colnames(tab) <- c("Kurt", "Elif", "Anna")
+rownames(tab) <- c("Accuracy", "RT")
+knitr::kable(tab)
+```
 
-- Signal Detection Theory (SDT): Model-based method of assessing performance (Green \& Swets, 1966)
-- Originally developed for signal detection experiments
-   + Now used for perception, memory, decision theory, attitude research, ...
-- Originally for two-choice tasks
-   + Now extended to any form of forced-choice task including rating scales, continuous measures, ...
+Which participant is **better** at the task?
 
+- What if each participant had been told to respond as *accurately* as possible?
+- What if each participant had been told to respond as *fast* as possible?
 
-## Signal Detection Theory
+## Theory, models, and data
 
-Models rely on understanding of continuous random variables.
+<br>
+
+<img src="pics/theorymodeldata.png" width="600">
+
+## Verbal vs. mathematical models
+
+There are many things that people call models.
+
+E.g. Prayoga, T., & Abraham, J. (2017). A psychological model explaining why we love or hate statistics.
+
+<img src="pics/verbalmodel.jpg" width="900">
+
+**This is a verbal model.**
+
+## Verbal vs. mathematical models
+
+"A mathematical model or theory is a set of mathematical structures, including a set of *linkage statements*" @vanZandt:Townsend:2012.
+
+>- Behavioral variables are related to components of psychological processes using equations.
+>- Psychological processes are expressed as parameters and functions.
+>- Behavior needs to be quantifiable (e.g. accuracy, response time).
+
+# Signal Detection Models
+
+## Signal Detection Models
+
+Signal Detection Models rely on understanding of continuous random variables.
 
 ```{r, echo = F, fig.asp = .7, fig.width=8}
 par(cex = 1.5, mgp = c(2, .7, 0))
@@ -136,10 +185,10 @@ y <- dnorm(x)
 plot(x, y, yaxt = 'n', type = "l", lwd = 3, ylab = "", col = adjustcolor(1, .8))
 ```
 
-### SDT model for SD experiment
+## Signal Detection Models
 
 - General idea: Perception strength $S$ varies gradually.
-- On average, perceptual strength is higher when the stimulus is present compared to absent.
+- On average, perceptual strength is higher when the stimulus is present/matches/old, etc.
 - $$
 S \sim
 \begin{cases}
@@ -148,8 +197,9 @@ S \sim
 \end{cases}
 $$
 
+## Example experiment
 
-## SDT model
+## Signal Detection Model
 
 ```{r echo = F, fig.asp = .6, fig.width=10}
 par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
