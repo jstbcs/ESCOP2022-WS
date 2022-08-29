@@ -1,0 +1,163 @@
+---
+title: "Your Turn!"
+subtitle: "Signal detection in brms"
+output: pdf_document
+---
+
+```{r echo = T}
+# needed packages
+library(curl)
+library(brms)
+```
+
+First, we need the data again, this time with the response variable:
+
+```{r echo = T}
+# See https://github.com/mdnunez/encodingN200 for more information about the data
+filename <- curl("https://raw.githubusercontent.com/jstbcs/ESCOP2022-WS/main/Data/pdmdata.csv")
+pdm <- read.csv(filename)
+
+pdm$spfn <- 1 - (as.numeric(as.factor(pdm$spf)) - 1)
+pdm$response <- ifelse(pdm$accuracy==1, pdm$spfn, 1 - pdm$spfn)
+```
+
+### Non-hierarchical Signal Detection Model
+
+\[Y_i \sim \mbox{Bernoulli}(p_i),\]
+\[p_i = \Phi(\mu_i), \]
+\[\mu_i = \beta_0 + \beta_1 \mbox{spf}_i.\]
+
+```{r fit1, echo = T, results='hide', message=FALSE, cache = T}
+fit1 <- brm(response ~ 1 + factor(spf),
+           family = bernoulli(link="probit"),
+           data = pdm[pdm$subject==1,])
+```
+
+#### Priors
+
+Now let's think about priors. There is a subtle component of the model that should inform the priors. It's the probit-transformation from latent space to probability space. It is key to ensure a reasonable distribution on the actual parameter scale (here: probabilities). If the prior on the latent space is too wide, then the transformed prior on probabilities becomes weird. Here is an example of what that could look like:
+
+```{r, fig.asp = .5, echo = F}
+set.seed(666)
+layout(matrix(1:2, ncol = 2))
+par(mgp = c(2, .7, 0), mar = c(5, 1, 5, 1))
+Is <- 1:30
+x <- seq(-2.5, 2.5, .01)
+par.t.d <- dnorm(x, 0, 1)
+par.t <- rnorm(30, 0, 1)
+
+plot(x, par.t.d, type = "l"
+     , yaxt = "n", ylim = c(0, .8)
+     , ylab = "", xlab = "Probit transformed guessing"
+     , frame.plot = F
+     , lwd = 2)
+points(par.t, rep(.5, 30), pch = 20, col = "gray40")
+par.nt <- (pnorm(par.t) - .5) * 4
+points(par.nt, rep(.7, 30), pch = 20, col = "gray40")
+for(i in Is){
+  lines(c(par.t[i], par.nt[i]), c(.5, .7), col = "gray40")
+}
+axis(3, at = (seq(0, 1 , length.out = 5) - .5) * 4, labels = seq(0, 1 , length.out = 5))
+mtext("Guessing Parameter", 3, line = 2)
+text(0, .2, "N(0, 1)")
+
+par.t <- rnorm(30, 0, 5)
+out.mark <- max(abs(range(par.t)))
+x <- seq(-out.mark, out.mark, .01)
+par.t.d <- dnorm(x, 0, 5)
+
+plot(x, par.t.d, type = "l"
+     , yaxt = "n", ylim = c(0, .8)
+     , ylab = "", xlab = "Probit transformed guessing"
+     , frame.plot = F
+     , lwd = 2)
+points(par.t, rep(.5, 30), pch = 20, col = "gray40")
+par.nt <- (pnorm(par.t) - .5) * 12
+points(par.nt, rep(.7, 30), pch = 20, col = "gray40")
+for(i in Is){
+  lines(c(par.t[i], par.nt[i]), c(.5, .7), col = "gray40")
+}
+axis(3, at = (seq(0, 1 , length.out = 5) - .5) * 12, labels = seq(0, 1 , length.out = 5))
+mtext("Guessing Parameter", 3, line = 2)
+text(0, .2, "N(0, 5)")
+```
+
+Given that, we might want to use something like this:
+
+```{r}
+Prior <- c(prior(normal(0, 1), class = "Intercept"),
+           prior(normal(0, 1), class = "b")
+           )
+```
+
+Now let's refit the model with these priors.
+
+```{r fit2, echo = T, results='hide', message=FALSE, cache = T}
+fit2 <- brm(response ~ 1 + factor(spf),
+           family = bernoulli(link="probit"),
+           data = pdm[pdm$subject==1,],
+           prior = Prior)
+```
+
+```{r, eval = F, echo = T}
+summary(fit2)
+```
+
+Did anything change?
+
+### Non-hierarchical Signal Detection Model
+
+Now we are ready to fit a model on all participants! For this, we need to adjust the model to account for nested data. That means the data get another subscript, $Y_{ij}$ with $i$ corresponding to people and $j$ corresponding to trials. 
+
+\[Y_{ij} \sim \mbox{Bernoulli}(p_{ij}),\]
+\[p_{ij} = \Phi(\mu_{ij}), \]
+\[\mu_{ij} = \nu_{0,i} + \nu_{1,i} \mbox{spf}_{ij}.\]
+
+This way, everyone receives their own criterion and sensitivity. These person-level parameters then come from dirstibutions themselves with overall criterion and sensitivity as means:
+
+\[\beta_{0,i} \sim \mbox{Normal}(\beta_0, \sigma_0^2),\\
+\beta_{1,i} \sim \mbox{Normal}(\beta_1, \sigma_1^2).\]
+
+This setup can be expressen in brms like this:
+
+```{r fit3, echo = T, results='hide', message=FALSE, cache = T, eval = F}
+fit3 <- brm(response ~ 1 + factor(spf) + (1 + factor(spf) | subject),
+           family = bernoulli(link="probit"),
+           data = pdm)
+```
+
+#### Priors
+
+Our previous priors for the $\beta$s can serve as priors again (though be careful that the priors on the individual parameters still make sense, they are variable depending on the priors on the $\sigma$s). Now we only need to add priors for the variances. We again use priors on the square root, the standard deviation. We can stay simple and use a half-normal distribution on these standard deviations.
+
+```{r}
+Prior <- c(prior(normal(0, 1), class = "Intercept"),
+           prior(normal(0, 1), class = "b"),
+           prior(normal(0, 1), class = "sd", lb = 0)
+           )
+```
+
+#### Other Extensions
+
+Notice that I added a few settings here. First, I reduce the adaptation algorithm so that the warmup is faster. This can lead to convergence issues under some circumstances, so make sure to assess both warnings in the output and convergence statistics carefully. I also save all parameters in an Rdata file. This can be useful if fitting the model takes a long time. This way you have access to all the posterior chains from all parameters. I run the model on four cores to reduce fitting time further.
+
+```{r fit4, cache = T}
+fit4 <- brm(response ~ 1 + factor(spf) + (1 + factor(spf) | subject),
+           family = bernoulli(link="probit"),
+           data = pdm,
+           prior = Prior,
+           control = list(adapt_delta = .9),
+           save_pars = save_pars("all"),
+           cores = 4, iter = 2000,
+           file = "data/sdtmodel")
+```
+
+```{r}
+summary(fit4)
+```
+
+\vskip10mm
+
+```{r, out.width = "15%", fig.align='right', echo = F}
+knitr::include_graphics("../Slides/pics/do.png")
+```

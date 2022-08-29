@@ -81,6 +81,7 @@ library("plotrix")
 library("colorspace")
 library(corrplot)
 library(rstan)
+library(brms)
 rstan_options(auto_write = TRUE)
 set.seed=123
 
@@ -108,30 +109,11 @@ make.poly <- function(a, b, mu = 0, s2 = 1, seq.by = .01, ...){
 
 ```{r}
 # See https://github.com/mdnunez/encodingN200 for more information about the data
-filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
+filename <- curl("https://raw.githubusercontent.com/jstbcs/ESCOP2022-WS/main/Data/pdmdata.csv")
 pdm <- read.csv(filename)
-```
 
-```{r}
-colnames(pdm) <- c('N200_latencies', 'N200_amplitudes'
-                   , 'RT', 'accuracy', 'condition', 'EEG_session'
-                   , 'experiment', 'session', 'subject')
-
-# Take on the data from the first experiment
-pdm <- pdm[pdm$experiment == 1, ]  
-
-# Remove irrelevant columns
-pdm <- pdm[, -c(1:2)]
-
-# Convert from milliseconds to seconds
-pdm$RT <- pdm$RT/1000
-
-ntrial <- dim(pdm)[1]
-nsub <- length(unique(pdm$subject))
-
-acc.sub <- with(pdm, tapply(accuracy, subject, mean))
-rt.sub <- with(pdm, tapply(RT, subject, mean))
-
+pdm$spfn <- 1 - (as.numeric(as.factor(pdm$spf)) - 1)
+pdm$response <- ifelse(pdm$accuracy==1, pdm$spfn, 1 - pdm$spfn)
 ```
 
 ## Theory, models, and data
@@ -453,6 +435,65 @@ abline(v = 1, lwd = 4, col = "palegreen4")
 
 ## Signal Detection Model in brms
 
+- Data are a coin flip and we model the probability: $Y_i \sim \mbox{Bernoulli}(p_i).$
+- Probabilities are transformed to the continuous latent space: $p_i = \Phi(\mu_i).$
+- In that space, we can use a linear model just as before: $\mu_i = \beta_0 + \beta_1 \mbox{spf}_i,$
+- where $\beta_0$, the intercept, translates to the criterion,
+- and $\beta_1$, the slope, translates to $d'$.
+
+```{r echo = F, out.width="50%"}
+par(mar = c(3,3,3,1), mgp = c(2,.7,0), cex = 1.5)
+x <- seq(-3, 5, .01)
+y.noise <- dnorm(x)
+y.signal <- dnorm(x, 1.5)
+
+plot(x, y.noise
+     , type = "l", lwd = 4
+     , xlim = range(x)
+     , frame.plot = F
+     , ylab = ""
+     , xlab = "Latent frequency"
+     , cex.lab = 1.3
+     , col = "darkblue"
+     )
+lines(x, y.signal, col = "darkgoldenrod1", lwd = 4)
+abline(v = 1, lwd = 4, col = "palegreen4")
+# make.poly(1, 5, mu = 1.5, col = adjustcolor("firebrick", .3))
+```
+
+## Signal Detection Model in brms
+
+\[Y_i \sim \mbox{Bernoulli}(p_i),\]
+\[p_i = \Phi(\mu_i), \]
+\[\mu_i = \beta_0 + \beta_1 \mbox{spf}_i.\]
+
+\vskip10mm
+
+```{r echo = T, results='hide', message=FALSE, cache = T}
+fit1 <- brm(response ~ 1 + factor(spf),
+           family = bernoulli(link="probit"),
+           data = pdm[pdm$subject==1,])
+```
+
+## Signal Detection Model in brms
+
+Computing *responses* using accuracy and presented spacial frequency:
+
+```{r echo = T, eval = F}
+pdm$spfn <- 1 - (as.numeric(as.factor(pdm$spf)) - 1)
+pdm$response <- ifelse(pdm$accuracy==1
+                       , pdm$spfn
+                       , 1 - pdm$spfn)
+```
+
+
+## Signal Detection Model in brms
+
+\Fontvi
+
+```{r echo = T}
+summary(fit1)
+```
 
 ## Questions?
 
