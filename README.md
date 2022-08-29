@@ -25,7 +25,9 @@ https://www.rstudio.com/products/rstudio/download/#download
 ### Alternatives to local RStudio (slow)
 
 There are two possibilities to use R online if you have not installed RStudio or are having trouble installing certain packages:
+
 [Google Colab R](https://colab.to/r)
+
 [RStudio Cloud - Requires free account creation](https://rstudio.cloud/)
 
 ### Installing brms
