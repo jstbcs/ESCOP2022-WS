@@ -93,7 +93,7 @@ myCols <- brewer.pal(8, "Dark2")
 - Hierarchical modeling is complicated.
 - Cognitive modeling is complicated.
 - This is an extremely brief primer.
-- Check out resources here: \url{https://github.com/jstbcs/ESCOP2022-WS/blob/main/resources.txt}.
+- Check out resources here: \url{https://github.com/jstbcs/ESCOP2022-WS}.
 
 ## An Example
 
@@ -120,7 +120,7 @@ Is Frank a picky eater?
 
 ## Models, an Example
 
-Predictions on data, based on the model $Y \sim \mbox{Binomial}(\theta,30)$, $\theta = .5.$
+Predictions on data, based on the model $Y \sim \mbox{Binomial}(0.5,30)$.
 
 ```{r, fig.asp=.6, fig.width=7}
 par(mar = c(3,3,0.5, 0.5))
@@ -151,7 +151,7 @@ points(x[x == 21], m[x == 21], pch = 19, cex = 1.3, col = "red")
 
 In Bayesian statistical analysis we typically would use a prior *distribution* for parameters.
 \[ \begin{aligned}
-Y|\theta &\sim \mbox{Binomial}(\theta,N),\\
+Y &\sim \mbox{Binomial}(\theta,N),\\
 \theta &\sim \mbox{Beta}(a,b).
 \end{aligned}
 \]
@@ -209,6 +209,8 @@ Pr(\theta|Y) = Pr(\theta)\frac{Pr(Y|\theta)}{Pr(Y)},
 - $Pr(\theta)$ is the *prior distribution* of $\theta$.
 - $Pr(Y|\theta)$ is the probability distribution of the data.
 - $Pr(Y)$ is the prediction for the data.
+
+# Priors
 
 ## Did we choose a good prior?
 
@@ -438,6 +440,8 @@ lines(outer,prior2,col='darkblue',lwd=2)
 lines(outer,post2,col='darkgreen',lwd=2)
 abline(v = Y/N, lty = 2, col = "firebrick", lwd = 2)
 ```
+
+# Posterior-based summaries of results
 
 ## Posterior-based summaries of results
 
