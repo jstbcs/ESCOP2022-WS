@@ -28,7 +28,7 @@ install.packages('curl')  #You need to load the R package "curl" to use this cle
 library(curl) 
 ```
 
-```{r}
+```{r echo = T}
 # See https://github.com/mdnunez/encodingN200 for more information about the data
 pdmdat <- curl("https://tinyurl.com/dataBayesCogMod")
 pdm <- read.csv(pdmdat)
