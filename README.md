@@ -17,6 +17,29 @@ This event will introduce Bayesian analysis with a particular focus on building 
 - Practical either SDT (Julia) or DDM (Michael)
 
 
+### Installing RStudio
+
+https://www.rstudio.com/products/rstudio/download/#download
+
+
+### Alternatives to local RStudio (slow)
+
+There are two possibilities to use R online if you have not installed RStudio or are having trouble installing certain packages:
+[Google Colab R](https://colab.to/r)
+[RStudio Cloud - Requires free account creation](https://rstudio.cloud/)
+
+### Installing brms
+
+Try running the following 4 lines in R. Installing brms will also install Stan in the background. If you have a local RStudio, you might have either install RTools after the 3rd line or update R & RStudio to the newest version.
+
+```R
+install.packages('brms')
+library(brms)
+bayesian_lm = brm(zBase ~ zAge, data=epilepsy)
+summary(bayesian_lm)
+
+```
+
 ### Perceptual Decision Making (PDM) task data
 
 ```R
