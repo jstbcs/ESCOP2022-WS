@@ -132,17 +132,6 @@ E.g. Prayoga, T., & Abraham, J. (2017). A psychological model explaining why we 
 
 \centering
 ![](pics/verbalmodel.jpg){width=350px}
-## Verbal vs. mathematical models
-
-There are many things that people call models.
-
-E.g. Prayoga, T., & Abraham, J. (2017). A psychological model explaining why we love or hate statistics.
-
-
-\centering
-![](pics/verbalmodel.jpg){width=350px}
-
-**This is a verbal model.**
 
 ## Verbal vs. mathematical models
 

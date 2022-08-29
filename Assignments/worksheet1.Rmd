@@ -14,11 +14,10 @@ library(curl)
 
 mycols <- RColorBrewer::brewer.pal(8, "Dark2")
 
-install.packages('curl')  #You will need to load the R package "curl" to use this cleaning code
 library(curl) 
 # See https://github.com/mdnunez/encodingN200 for more information about the data
-filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
-pdm <- read.csv(filename)
+pdmdat <- curl("https://tinyurl.com/dataBayesCogMod")
+pdm <- read.csv(pdmdat)
 
 ```
 
@@ -29,32 +28,10 @@ install.packages('curl')  #You need to load the R package "curl" to use this cle
 library(curl) 
 ```
 
-```{r, echo = T, eval = F}
-# See https://github.com/mdnunez/encodingN200 for more information about the data
-filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200
-                 /master/Data/N200_rt_window_150_275.csv")
-pdm <- read.csv(filename)
-```
-
 ```{r}
 # See https://github.com/mdnunez/encodingN200 for more information about the data
-filename <- curl("https://raw.githubusercontent.com/mdnunez/encodingN200/master/Data/N200_rt_window_150_275.csv")
-pdm <- read.csv(filename)
-```
-
-```{r echo = T}
-colnames(pdm) <- c('N200_latencies', 'N200_amplitudes'
-                   , 'RT', 'accuracy', 'condition', 'EEG_session'
-                   , 'experiment', 'session', 'subject')
-
-# Take on the data from the first experiment
-pdm <- pdm[pdm$experiment == 1, ]  
-
-# Convert from milliseconds to seconds
-pdm$RT <- pdm$RT/1000
-
-ntrial <- dim(pdm)[1]
-nsub <- length(unique(pdm$subject))
+pdmdat <- curl("https://tinyurl.com/dataBayesCogMod")
+pdm <- read.csv(pdmdat)
 ```
 
 
@@ -63,10 +40,10 @@ nsub <- length(unique(pdm$subject))
 1. Familiarize yourself with the data. Maybe use a plot or two, see which variables might be relevant.
 
 ```{r}
-knitr::kable(head(pdm))
+knitr::kable(head(pdm[, -(1:2)]), format = "latex")
 ```
 
-\newpage
+\vskip10mm
 
 2. Suppose we wanted to model the accuracy of the responses using `brms`. As a first step, we will not use any predictors, but just model the responses provided and across incongruent and congruent trials. Here is the code (*warning:* this may take a while):
 
@@ -90,6 +67,8 @@ summary(model_fit)
 ```
 
 3. Let's make sense of the results. First, what does the line represent? What do the columns represent? Then, what dare the estimates and do they make sense?
+
+\vskip10mm
 
 4. Is this a good prior for response time? What would be better?
 
