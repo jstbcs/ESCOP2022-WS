@@ -9,6 +9,7 @@ This event will introduce Bayesian analysis with a particular focus on building 
 
 ### Overview
 
+<<<<<<< HEAD
 - Introduction to Bayesian Statistics - Julia
 - Practical mini-session using brms - Julia
 - Bayesian hierarchical regression and Practical - Michael
@@ -26,9 +27,6 @@ library(curl)
 # See https://github.com/mdnunez/encodingN200 for more information about the data
 pdmdat <- curl("https://tinyurl.com/dataBayesCogMod")
 pdm <- read.csv(pdmdat)
-
-ntrial <- dim(pdm)[1]
-nsub <- length(unique(pdm$subject))
 
 head(pdm)
 ```
