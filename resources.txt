@@ -18,3 +18,11 @@
 ## Signal-detection with brms
 
 - https://mvuorre.github.io/posts/2017-10-09-bayesian-estimation-of-signal-detection-theory-models/
+
+## Drift-diffusion models with EZ Diffusion
+
+- https://link.springer.com/content/pdf/10.3758%2FBF03194023.pdf
+
+## Drift-diffusion models with brms
+
+- http://singmann.org/wiener-model-analysis-with-brms-part-i/
