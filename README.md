@@ -6,8 +6,9 @@ Workshop on Bayesian Cognitive Modeling using brms
 ### Overview
 
 - Intro to Bayes - Julia (20min)
+- Introduction to the Perceptual Decision Making data - Michael (5min)
 - Practical usign brms but non-hierarchical - Julia (see Bayes stats course) (10min)
-- Bayesian hierarchical regression (20min) and Practical (25min) - Michael (total: 45min)
+- Bayesian hierarchical regression (20min) and Practical (20min) - Michael (total: 40min)
 - Intro to cognitive modeling: signal-detection (Julia) (15min)
 - Intro to cognitive modeling: DDM (Michael) (15min)
 - Practical either SDT (Julia) or DDM (Michael) (15min) - blog posts
