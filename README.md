@@ -17,8 +17,12 @@ This event will introduce Bayesian analysis with a particular focus on building 
 - Practical either SDT (Julia) or DDM (Michael)
 
 
-### Installing RStudio
+### Installing R and RStudio
 
+First download R for your operating system:
+https://cran.rstudio.com/
+
+Next download RStudio:
 https://www.rstudio.com/products/rstudio/download/#download
 
 
