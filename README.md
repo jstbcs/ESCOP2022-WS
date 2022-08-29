@@ -9,7 +9,6 @@ This event will introduce Bayesian analysis with a particular focus on building 
 
 ### Overview
 
-<<<<<<< HEAD
 - Introduction to Bayesian Statistics - Julia
 - Practical mini-session using brms - Julia
 - Bayesian hierarchical regression and Practical - Michael
